@@ -89,8 +89,6 @@ class BasicDataset:
         -- NOTE -- Should return DataFrame or Series
         '''
 
-        # support log10@x here
-
         if isinstance(key, tuple):
             if len(key) != 2:
                 raise ValueError('key should be a tuple of length 2')
@@ -250,6 +248,9 @@ class BasicDataset:
             return self.OP_MAP[op](self[name].to_numpy())
         else:
             return self[name].to_numpy()
+        
+    def get_data_by_names(self, names) -> np.ndarray:
+        return np.asarray([self.get_data_by_name(name) for name in names]).T
 
     def get_label_by_name(self, name, with_unit=True) -> str:
         # sourcery skip: remove-unnecessary-else, swap-if-else-branches
@@ -264,6 +265,11 @@ class BasicDataset:
             return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + unit
         else:
             return self.labels.get(name, name) + unit
+        
+    def get_labels_by_names(self, names, with_unit=True) -> List[str]:
+        return [
+            self.get_label_by_name(name, with_unit=with_unit) for name in names
+        ]
 
     def get_unit_label_by_name(self, name):
         if '@' in name:
@@ -272,11 +278,6 @@ class BasicDataset:
         else:
             unit = ' ' + self.unit_labels.get(name, '')
         return unit
-
-    def get_labels_by_names(self, names, with_unit=True) -> List[str]:
-        return [
-            self.get_label_by_name(name, with_unit=with_unit) for name in names
-        ]
 
     def get_range_by_name(self, name):
         if '@' in name:
@@ -886,6 +887,14 @@ class Dataset(BasicDataset):
                 axes=axes,
                 subplots_kwargs=subplots_kwargs,
                 **kwargs)
+        
+    def get_RF_importance(self, x_names, y_name, subsample=None, **kwargs):
+        ...
+        # x_names = string_to_list(x_names)
+        # xs = 
+        # y = self.get_data_by_name(y_name)
+        # _subsample = self.get_subsample(subsample)
+        # return get_RF_importance(self.get_data_by_name(x_names), y[_subsample], weights=_weights, **kwargs)
 
 
 def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):

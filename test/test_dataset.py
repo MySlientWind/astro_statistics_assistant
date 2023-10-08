@@ -127,15 +127,16 @@ class TestDataset:
                               'x': 'x_label',
                               'y': 'y_label'
                           })
-        assert dataset.labels == {
-                              'x': 'x_label',
-                              'y': 'y_label'
-                          }
+        assert dataset.labels == {'x': 'x_label', 'y': 'y_label'}
 
     def test_update(self):
 
         dataset, x, y, z = self.gen_dataset()
-        assert dataset.labels == {'x': 'x label', 'y': 'y label', 'z': 'z label'}
+        assert dataset.labels == {
+            'x': 'x label',
+            'y': 'y label',
+            'z': 'z label'
+        }
 
         dataset.update_labels({'x': 'xxx', 'y': 'yyy'})
         assert dataset.labels == {'x': 'xxx', 'y': 'yyy', 'z': 'z label'}
@@ -163,3 +164,11 @@ class TestDataset:
         assert dataset.get_range_by_name('log10@x') == [
             np.log10(1), np.log10(9)
         ]
+
+    def test_get_data_by_name(self):
+
+        dataset, x, y, z = self.gen_dataset()
+
+        assert np.array_equal(dataset.get_data_by_name('x'), x)
+        assert np.array_equal(dataset.get_data_by_names(['x', 'y']),
+                              np.array([x, y]).T)
