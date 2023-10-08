@@ -24,13 +24,15 @@ class BasicDataset:
                  data,
                  names=None,
                  labels: Union[Dict, List, None] = None,
-                 ranges: Union[Dict, List, None] = None) -> None:
+                 ranges: Union[Dict, List, None] = None,
+                 unit_labels: Union[Dict, List, None] = None) -> None:
         # TODO: units
 
         self.data: pd.DataFrame
         self.names: np.ndarray
         self.labels: Dict[str, str]
         self.ranges: Dict[str, Union[List, None]]
+        self.unit_labels: Dict[str, str]
 
         if isinstance(data, pd.DataFrame):
             self.data = data
@@ -63,6 +65,15 @@ class BasicDataset:
             self.ranges = {}
         else:
             raise ValueError('ranges should be dict or list')
+        
+        if isinstance(unit_labels, dict):
+            self.unit_labels = unit_labels
+        elif isinstance(unit_labels, list):
+            self.unit_labels = {name: unit_labels[i] for i, name in enumerate(names)}
+        elif unit_labels is None:
+            self.unit_labels = {}
+        else:
+            raise ValueError('unit_labels should be dict or list')
 
     def __iter__(self):
         return iter(self.data.columns)
@@ -165,6 +176,9 @@ class BasicDataset:
     def update_labels(self, labels_dict) -> None:
         self.labels.update(labels_dict)
 
+    def update_unit_labels(self, unit_labels_dict) -> None:
+        self.unit_labels.update(unit_labels_dict)
+
     def update_names(self, names_dict) -> None:
         for name in names_dict:
             idx = self.names == name
@@ -172,8 +186,7 @@ class BasicDataset:
             self.data.rename(columns={name: names_dict[name]}, inplace=True)
 
     def update_ranges(self, ranges_dict) -> None:
-        for name in ranges_dict:
-            self.ranges[name] = ranges_dict[name]
+        self.ranges.update(ranges_dict)
 
     def summary(self, stats_info=False) -> None:
         print(self.__str__())
@@ -235,13 +248,19 @@ class BasicDataset:
         else:
             return self[name].to_numpy()
 
-    def get_label_by_name(self, name) -> str:
+    def get_label_by_name(self, name, with_unit=True) -> str:
         # sourcery skip: remove-unnecessary-else, swap-if-else-branches
+
+        if with_unit:
+            units = ' ' + self.unit_labels.get(name, '')
+        else:
+            units = ''
+
         if '@' in name:
             op, name = name.split('@')
-            return self.OP_MAP_LABEL[op] + self.labels.get(name, name)
+            return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + units
         else:
-            return self.labels.get(name, name)
+            return self.labels.get(name, name) + units
 
     def get_range_by_name(self, name):
         if '@' in name:
@@ -403,9 +422,18 @@ class Dataset(BasicDataset):
     # TODO: histogram
     # TODO: control 1D/2D
 
-    def __init__(self, data, names=None, labels=None, ranges=None) -> None:
+    def __init__(self,
+                 data,
+                 names=None,
+                 labels=None,
+                 ranges=None,
+                 unit_labels=None) -> None:
 
-        super().__init__(data, names=names, labels=labels, ranges=ranges)
+        super().__init__(data,
+                         names=names,
+                         labels=labels,
+                         ranges=ranges,
+                         unit_labels=unit_labels)
 
         self.method_mapping = {
             'trend': self._trend,
