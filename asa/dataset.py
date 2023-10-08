@@ -65,11 +65,14 @@ class BasicDataset:
             self.ranges = {}
         else:
             raise ValueError('ranges should be dict or list')
-        
+
         if isinstance(unit_labels, dict):
             self.unit_labels = unit_labels
         elif isinstance(unit_labels, list):
-            self.unit_labels = {name: unit_labels[i] for i, name in enumerate(names)}
+            self.unit_labels = {
+                name: unit_labels[i]
+                for i, name in enumerate(names)
+            }
         elif unit_labels is None:
             self.unit_labels = {}
         else:
@@ -261,6 +264,11 @@ class BasicDataset:
             return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + units
         else:
             return self.labels.get(name, name) + units
+
+    def get_labels_by_names(self, names, with_unit=True) -> List[str]:
+        return [
+            self.get_label_by_name(name, with_unit=with_unit) for name in names
+        ]
 
     def get_range_by_name(self, name):
         if '@' in name:
