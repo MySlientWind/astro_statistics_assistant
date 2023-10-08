@@ -255,15 +255,23 @@ class BasicDataset:
         # sourcery skip: remove-unnecessary-else, swap-if-else-branches
 
         if with_unit:
-            units = ' ' + self.unit_labels.get(name, '')
+            unit = self.get_unit_label_by_name(name)
         else:
-            units = ''
+            unit = ''
 
         if '@' in name:
             op, name = name.split('@')
-            return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + units
+            return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + unit
         else:
-            return self.labels.get(name, name) + units
+            return self.labels.get(name, name) + unit
+
+    def get_unit_label_by_name(self, name):
+        if '@' in name:
+            _, name = name.split('@')
+            unit = ' ' + self.unit_labels.get(name, '')
+        else:
+            unit = ' ' + self.unit_labels.get(name, '')
+        return unit
 
     def get_labels_by_names(self, names, with_unit=True) -> List[str]:
         return [
