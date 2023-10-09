@@ -16,6 +16,26 @@ def flag_bad(x):
     return np.isnan(x) | np.isinf(x)
 
 
+def balance_class(x, y, random_state=None):
+    """
+    Balance the classes in a dataset by randomly removing data points from the majority class(es).
+
+    :param x: the input data
+    :param y: the labels
+    :param random_state: the random state to use for the random number generator
+    :return: the balanced data and labels
+    """
+    if random_state is not None:
+        np.random.seed(random_state)
+    unique, counts = np.unique(y, return_counts=True)
+    min_count = np.min(counts)
+    idx = np.concatenate([
+        np.random.choice(np.where(y == u)[0], min_count, replace=False)
+        for u in unique
+    ])
+    return x[idx], y[idx]
+
+
 def is_float(x):
     '''
     check if x is kind of float, such as built-in float, np.float32, np.float64, np.ndarray of float, list of float...

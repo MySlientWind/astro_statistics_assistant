@@ -6,7 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import binned_statistic, binned_statistic_2d
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap
-from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad
+from .correlation_methods import get_RF_importance
+from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
 
 _range = range
 
@@ -438,6 +439,7 @@ class Dataset(BasicDataset):
 
     # TODO: histogram
     # TODO: control 1D/2D
+    # TODO: inherit the doc string of wrapped methods
 
     def __init__(self,
                  data,
@@ -893,8 +895,13 @@ class Dataset(BasicDataset):
                           y_name,
                           problem_type=None,
                           subsample=None,
+                          bad_treatment='drop',
+                          auto_balance=False,
+                          check_res=True,
+                          return_more=False,
                           **kwargs):
-        ...
+        # TODO: auto tune hyperparameters
+
         x_names = string_to_list(x_names)
         xs = self.get_data_by_names(x_names)
         y = self.get_data_by_name(y_name)
@@ -902,19 +909,48 @@ class Dataset(BasicDataset):
         xs = xs[_subsample]
         y = y[_subsample]
 
+        if is_bool(y):
+            y = y.astype(int)
+
         if problem_type is None:
             print('problem_type is not specified, try to guess:')
             print('  If y is float, problem_type is regression')
             print('  If y is int or bool, problem_type is classification')
             if is_float(y):
                 problem_type = 'regression'
-            elif is_int(y) or is_bool(y):
+            elif is_int(y):
                 problem_type = 'classification'
             else:
                 raise ValueError(
                     'Can not guess problem_type, please specify problem_type')
 
-        # return get_RF_importance(self.get_data_by_name(x_names), y[_subsample], weights=_weights, **kwargs)
+        if bad_treatment == 'drop':
+            is_bad = flag_bad(xs).any(axis=1) | flag_bad(y)
+            xs = xs[~is_bad]
+            y = y[~is_bad]
+            xs = xs[~is_bad]
+            y = y[~is_bad]
+        else:
+            raise NotImplementedError(
+                'bad_treatment other than drop is not implemented')
+
+        if auto_balance:
+            if not problem_type == 'classification':
+                raise ValueError('auto_balance only works for classification')
+            xs, y = balance_class(xs, y)
+
+        feature_importance, rf, X_train, X_test, y_train, y_test = get_RF_importance(
+            xs, y, problem_type, return_more=True, **kwargs)
+
+        if check_res:
+            print('Check the result:')
+            print('  Train score: ', rf.score(X_train, y_train))
+            print('  Test score: ', rf.score(X_test, y_test))
+
+        if return_more:
+            return feature_importance, rf, X_train, X_test, y_train, y_test
+        else:
+            return feature_importance
 
 
 def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):

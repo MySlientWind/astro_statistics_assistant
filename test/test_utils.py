@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from asa.utils import list_reshape, is_float, is_int, is_bool
+from asa.utils import list_reshape, is_float, is_int, is_bool, balance_class
 
 
 class TestUtils:
@@ -85,3 +85,27 @@ class TestUtils:
         assert is_bool(np.ones(10, dtype=bool))
         assert is_bool(np.zeros(10, dtype=bool))
         assert is_bool([True, False, True])
+
+    def test_balance_class(self):
+
+        x = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        y = np.array([0, 1, 2])
+
+        x_balanced, y_balanced = balance_class(x, y, random_state=0)
+
+        assert x_balanced.shape == (3, 3)
+        assert y_balanced.shape == (3, )
+
+        x = np.random.normal(size=(100, 10))
+        y = np.random.randint(0, 4, size=(100, ))
+        y[y == 3] = 2
+
+        x_balanced, y_balanced = balance_class(x, y, random_state=0)
+
+        _, counts = np.unique(y, return_counts=True)
+
+        assert x_balanced.shape == (3*counts.min(), 10)
+        assert y_balanced.shape == (3*counts.min(), )
+
+        for i in range(3):
+            assert (y_balanced == i).sum() == (y_balanced == 0).sum()
