@@ -810,7 +810,12 @@ def hist2d(x,
     if plot_contours:
         if contour_kwargs is None:
             contour_kwargs = {}
-        contour_kwargs["colors"] = contour_kwargs.get("colors", color)
+        if not "colors" in contour_kwargs:
+            _colors = color
+            if isinstance(_colors, tuple):
+                _colors = [_colors]
+            contour_kwargs["colors"] = _colors
+        
         ax.contour(X2, Y2, H2.T, V, **contour_kwargs)
 
     ax.set_xlim(range[0])
