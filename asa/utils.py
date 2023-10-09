@@ -8,12 +8,41 @@ _range = range
 def flag_bad(x):
     """
     It returns True if the input is NaN or Inf, and False otherwise
-    
+
     :param x: the input data
     :return: A boolean array of the same shape as x, where True indicates that the corresponding element
     of x is NaN or +/-inf.
     """
     return np.isnan(x) | np.isinf(x)
+
+
+def is_float(x):
+    '''
+    check if x is kind of float, such as built-in float, np.float32, np.float64, np.ndarray of float, list of float...
+    '''
+    return isinstance(x, float) or isinstance(x, np.float32) or isinstance(
+        x,
+        np.float64) or (isinstance(x, np.ndarray) and x.dtype.kind == 'f') or (
+            isinstance(x, list) and all(isinstance(y, float) for y in x))
+
+
+def is_int(x):
+    '''
+    check if x is kind of int, such as built-in int, np.int32, np.int64, np.ndarray of int, list of int...
+    '''
+    return isinstance(x, int) or isinstance(x, np.int32) or isinstance(
+        x, np.int64) or (isinstance(x, np.ndarray) and x.dtype.kind
+                         == 'i') or (isinstance(x, list)
+                                     and all(isinstance(y, int) for y in x))
+
+
+def is_bool(x):
+    '''
+    check if x is kind of bool, such as built-in bool, np.bool, np.ndarray of bool, list of bool...
+    '''
+    return isinstance(
+        x, bool) or (isinstance(x, np.ndarray) and x.dtype.kind == 'b') or (
+            isinstance(x, list) and all(isinstance(y, bool) for y in x))
 
 
 def string_to_list(string):
@@ -23,6 +52,7 @@ def string_to_list(string):
 def is_string_or_list_of_string(x):
     return (isinstance(x, str)
             or isinstance(x, list) and all(isinstance(y, str) for y in x))
+
 
 def list_reshape(lst: List, shape) -> List[List]:
     """

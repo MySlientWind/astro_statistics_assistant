@@ -248,7 +248,7 @@ class BasicDataset:
             return self.OP_MAP[op](self[name].to_numpy())
         else:
             return self[name].to_numpy()
-        
+
     def get_data_by_names(self, names) -> np.ndarray:
         return np.asarray([self.get_data_by_name(name) for name in names]).T
 
@@ -265,7 +265,7 @@ class BasicDataset:
             return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + unit
         else:
             return self.labels.get(name, name) + unit
-        
+
     def get_labels_by_names(self, names, with_unit=True) -> List[str]:
         return [
             self.get_label_by_name(name, with_unit=with_unit) for name in names
@@ -887,13 +887,33 @@ class Dataset(BasicDataset):
                 axes=axes,
                 subplots_kwargs=subplots_kwargs,
                 **kwargs)
-        
-    def get_RF_importance(self, x_names, y_name, subsample=None, **kwargs):
+
+    def get_RF_importance(self,
+                          x_names,
+                          y_name,
+                          problem_type=None,
+                          subsample=None,
+                          **kwargs):
         ...
-        # x_names = string_to_list(x_names)
-        # xs = 
-        # y = self.get_data_by_name(y_name)
-        # _subsample = self.get_subsample(subsample)
+        x_names = string_to_list(x_names)
+        xs = self.get_data_by_names(x_names)
+        y = self.get_data_by_name(y_name)
+        _subsample = self.get_subsample(subsample)
+        xs = xs[_subsample]
+        y = y[_subsample]
+
+        if problem_type is None:
+            print('problem_type is not specified, try to guess:')
+            print('  If y is float, problem_type is regression')
+            print('  If y is int or bool, problem_type is classification')
+            if is_float(y):
+                problem_type = 'regression'
+            elif is_int(y) or is_bool(y):
+                problem_type = 'classification'
+            else:
+                raise ValueError(
+                    'Can not guess problem_type, please specify problem_type')
+
         # return get_RF_importance(self.get_data_by_name(x_names), y[_subsample], weights=_weights, **kwargs)
 
 
