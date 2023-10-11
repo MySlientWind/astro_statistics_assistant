@@ -928,8 +928,6 @@ class Dataset(BasicDataset):
             is_bad = flag_bad(xs).any(axis=1) | flag_bad(y)
             xs = xs[~is_bad]
             y = y[~is_bad]
-            xs = xs[~is_bad]
-            y = y[~is_bad]
         else:
             raise NotImplementedError(
                 'bad_treatment other than drop is not implemented')
