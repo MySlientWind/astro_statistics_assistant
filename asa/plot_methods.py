@@ -425,6 +425,9 @@ def plot_sample_to_point(x,
     error_type: 'std', 'std_mean' or 'quantile'
     
     """
+    bad = flag_bad(x) | flag_bad(y)
+    x = x[~bad]
+    y = y[~bad]
 
     if ax is None:
         ax = plt.gca()
