@@ -464,3 +464,35 @@ def plot_sample_to_point(x,
         raise ValueError('error_type must be one of std, std_mean or quantile')
         
     ax.errorbar(x_cen, y_cen, xerr=x_err, yerr=y_err, **errorbar_kwargs)
+
+
+def plot_line(x=None, y=None, p1=None, p2=None, k=None, b=None, ax=None, **kwargs):
+
+    if ax is None:
+        ax = plt.gca()
+
+    if not x is None:
+        ax.axvline(x, **kwargs)
+        return
+    
+    if not y is None:
+        ax.axhline(y, **kwargs)
+        return
+
+    if not p1 is None:
+        if not p2 is None:
+            ax.axline(p1, p2, **kwargs)
+            return
+        elif not k is None:
+            ax.axline(p1, slope=k, **kwargs)
+            return
+        elif not b is None:
+            ax.axline(p1, slope=(p1[1] - b) / p1[0], **kwargs)
+            return
+    
+    if not k is None:
+        if not b is None:
+            ax.axline((0, b), slope=k, **kwargs)
+            return
+
+    raise ValueError("Invalid input")
