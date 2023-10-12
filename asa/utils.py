@@ -130,3 +130,23 @@ def bin_2d(x, y, z, bins=10, range=None, min_data=0):
         y_edges[1:] + y_edges[:-1])
     X, Y = np.meshgrid(x_center, y_center)
     return X, Y, Z, x_edges, y_edges
+
+def get_kwargs_each(fixed_kwargs, changed_kwargs, shape):
+    """
+    Get a list of kwargs for each element in a 2D array
+
+    :param fixed_kwargs: a dictionary of fixed kwargs
+    :param changed_kwargs: a dictionary of changed kwargs
+    :param shape: the shape of the 2D array
+    :return: a list of kwargs
+    """
+    kwargs_each = []
+    for i in _range(shape[0]):
+        kwargs_each.append([])
+        for j in _range(shape[1]):
+            kwargs_each[-1].append({})
+            for key, value in fixed_kwargs.items():
+                kwargs_each[-1][-1][key] = value
+            for key, value in changed_kwargs.items():
+                kwargs_each[-1][-1][key] = value[i][j]
+    return kwargs_each
