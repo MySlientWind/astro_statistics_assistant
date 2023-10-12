@@ -362,7 +362,9 @@ def plot_heatmap(x,
                  auto_p=None,
                  map_kind='pcolor',
                  pcolor_kwargs=None,
-                 contour_kwargs=None):  # sourcery skip: avoid-builtin-shadow
+                 contour_kwargs=None,
+                 set_clabel=False,
+                 clabel_kwargs=None):  # sourcery skip: avoid-builtin-shadow
     """
     kind: 'pcolor' or 'contour'
     """
@@ -397,11 +399,11 @@ def plot_heatmap(x,
 
         if contour_kwargs is None:
             contour_kwargs = {}
-
-        set_clabel = contour_kwargs.pop('set_clabel', False)
         cont = ax.contour(X, Y, Z, **contour_kwargs)
         if set_clabel:
-            ax.clabel(cont, inline=True, fontsize=10)
+            if clabel_kwargs is None:
+                clabel_kwargs = {}
+            ax.clabel(cont, **clabel_kwargs)
 
         return cont
 
