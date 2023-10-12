@@ -689,6 +689,9 @@ class Dataset(BasicDataset):
                                     axes=None,
                                     subplots_kwargs=None,
                                     **kwargs):
+        
+        # TODO: return all extra returns by each method
+        
         x_names = string_to_list(x_names)
         y_names = string_to_list(y_names)
 
@@ -737,6 +740,7 @@ class Dataset(BasicDataset):
                        **kwargs):
 
         # TODO: bin by the third variable
+        # TODO: return all extra returns by each method
 
         x_names = string_to_list(x_names)
         y_names = string_to_list(y_names)

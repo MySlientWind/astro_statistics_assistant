@@ -398,7 +398,12 @@ def plot_heatmap(x,
         if contour_kwargs is None:
             contour_kwargs = {}
 
-        ax.contour(X, Y, Z, **contour_kwargs)
+        set_clabel = contour_kwargs.pop('set_clabel', False)
+        cont = ax.contour(X, Y, Z, **contour_kwargs)
+        if set_clabel:
+            ax.clabel(cont, inline=True, fontsize=10)
+
+        return cont
 
 
 def plot_sample_to_point(x,
