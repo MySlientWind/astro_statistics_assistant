@@ -590,10 +590,12 @@ class Dataset(BasicDataset):
         xrange = self.get_range_by_name(x_name)
         if xrange is None:
             x = self.get_data_by_name(x_name)
+            x = x[~flag_bad(x)]
             xrange = [x.min(), x.max()]
         yrange = self.get_range_by_name(y_name)
         if yrange is None:
             y = self.get_data_by_name(y_name)
+            y = y[~flag_bad(y)]
             yrange = [y.min(), y.max()]
         return [xrange, yrange]
 
