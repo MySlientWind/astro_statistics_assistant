@@ -2,6 +2,7 @@ from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
+from statsmodels.stats.weightstats import DescrStatsW
 # from scipy.stats import binned_statistic
 
 from .Bcorner import corner, hist2d, quantile
@@ -10,6 +11,7 @@ from .loess2d import loess_2d_map
 
 # TODO: extract common code
 # - flag and remove bad
+
 
 def plot_trend(x,
                y,
@@ -190,10 +192,8 @@ def plot_scatter(x,
                  smooth_kwargs=None,
                  plot_kwargs=None):  # sourcery skip: avoid-builtin-shadow
 
-
     # TODO: z_range, automatically adjust?
     # usage of xnew / ynew
-
 
     hasz = True
     if z is None:
@@ -213,8 +213,8 @@ def plot_scatter(x,
     xrange = range[0]
     yrange = range[1]
 
-    is_in_range = (x > xrange[0]) & (x < xrange[1]) & (y > yrange[0]) & (y < yrange[1])
-    
+    is_in_range = (x > xrange[0]) & (x < xrange[1]) & (y > yrange[0]) & (
+        y < yrange[1])
 
     if plot_kwargs is None:
         plot_kwargs = {}
@@ -225,19 +225,24 @@ def plot_scatter(x,
         nsmooth = smooth_kwargs.get("nsmooth", 0.5)
         xnew = x[is_in_range].copy()
         ynew = y[is_in_range].copy()
-        znew = loess_2d_map(x[is_in_range], y[is_in_range], z[is_in_range],\
-               xnew, ynew, weights[is_in_range], nsmooth)
+        znew = loess_2d_map(x[is_in_range], y[is_in_range], z[is_in_range],
+                            xnew, ynew, weights[is_in_range], nsmooth)
         sc = ax.scatter(xnew, ynew, c=znew, label=label, **plot_kwargs)
         plt.colorbar(sc, ax=ax)
 
     else:
         if hasz:
-            sc = ax.scatter(x[is_in_range], y[is_in_range], c=z[is_in_range], label=label, **plot_kwargs)
+            sc = ax.scatter(x[is_in_range],
+                            y[is_in_range],
+                            c=z[is_in_range],
+                            label=label,
+                            **plot_kwargs)
             plt.colorbar(sc, ax=ax)
         else:
-            ax.scatter(x[is_in_range], y[is_in_range], label=label, **plot_kwargs)
-
-
+            ax.scatter(x[is_in_range],
+                       y[is_in_range],
+                       label=label,
+                       **plot_kwargs)
 
 
 def plot_corner(xs,
@@ -382,7 +387,7 @@ def plot_heatmap(x,
 
     if map_kind == 'pcolor':
         if pcolor_kwargs is None:
-            pcolor_kwargs = {}        
+            pcolor_kwargs = {}
 
         # Maybe use pcolormesh for high performance?
         # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.pcolormesh.html#differences-pcolor-pcolormesh
@@ -394,3 +399,58 @@ def plot_heatmap(x,
             contour_kwargs = {}
 
         ax.contour(X, Y, Z, **contour_kwargs)
+
+
+def plot_sample_to_point(x,
+                         y,
+                         ax=None,
+                         weights=None,
+                         ddof=0,
+                         center_type='mean',
+                         error_type='std',
+                         quantiles=None,
+                         errorbar_kwargs=None):
+    """
+    The function to summarize a sample to a point and then plot it
+    
+
+    center_type: 'mean' or 'median'
+    error_type: 'std', 'std_mean' or 'quantile'
+    
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    if errorbar_kwargs is None:
+        errorbar_kwargs = {}
+
+    if center_type == 'mean':
+        weighted_stats = DescrStatsW(np.c_[x, y], weights=weights, ddof=ddof)
+        x_cen = weighted_stats.mean[0]
+        y_cen = weighted_stats.mean[1]
+    elif center_type == 'median':
+        x_cen = quantile(x, q=0.5, weights=weights)[0]
+        y_cen = quantile(y, q=0.5, weights=weights)[0]
+    else:
+        raise ValueError('center_type must be one of mean or median')
+
+    if error_type == 'std':
+        weighted_stats = DescrStatsW(np.c_[x, y], weights=weights, ddof=ddof)
+        x_err = weighted_stats.std[0]
+        y_err = weighted_stats.std[1]
+    elif error_type == 'std_mean':
+        weighted_stats = DescrStatsW(np.c_[x, y], weights=weights, ddof=ddof)
+        x_err = weighted_stats.std_mean[0]
+        y_err = weighted_stats.std_mean[1]
+    elif error_type == 'quantile':
+        if quantiles is None:
+            quantiles = [0.16, 0.84]
+        x_quant = quantile(x, q=quantiles, weights=weights).reshape(-1, 1)
+        y_quant = quantile(y, q=quantiles, weights=weights).reshape(-1, 1)
+        x_err = np.abs(x_quant - x_cen)
+        y_err = np.abs(y_quant - y_cen)
+    else:
+        raise ValueError('error_type must be one of std, std_mean or quantile')
+        
+    ax.errorbar(x_cen, y_cen, xerr=x_err, yerr=y_err, **errorbar_kwargs)

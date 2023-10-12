@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import binned_statistic, binned_statistic_2d
-from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap
+from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
 from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
 
@@ -458,7 +458,8 @@ class Dataset(BasicDataset):
             'trend': self._trend,
             'contour': self._contour,
             'scatter': self._scatter,
-            'heatmap': self._heatmap
+            'heatmap': self._heatmap,
+            'sample_to_point': self._sample_to_point
         }
 
     def _trend(self,
@@ -652,6 +653,34 @@ class Dataset(BasicDataset):
                                ylim)
         if kwargs.get('label', None) is not None:
             ax.legend()
+
+    def _sample_to_point(self,
+                         x_name,
+                         y_name,
+                         ax,
+                         subsample=None,
+                         xlabel=None,
+                         ylabel=None,
+                         title=None,
+                         xlim=None,
+                         ylim=None,
+                         **kwargs):
+        x = self.get_data_by_name(x_name)
+        y = self.get_data_by_name(y_name)
+
+        _subsample = self.get_subsample(subsample)
+        weights = kwargs.pop('weights', None)
+        weights = self.get_data_by_name(weights) if isinstance(
+            weights, str) else weights
+        _weights = weights[_subsample] if weights is not None else None
+        plot_sample_to_point(x[_subsample],
+                             y[_subsample],
+                             ax=ax,
+                             weights=_weights,
+                             **kwargs)
+
+        self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
+                               ylim)
 
     def plot_xygeneral_no_broadcast(self,
                                     kind,
@@ -884,6 +913,29 @@ class Dataset(BasicDataset):
         else:
             return self.plot_xygeneral_no_broadcast(
                 'heatmap',
+                x_names,
+                y_names,
+                axes=axes,
+                subplots_kwargs=subplots_kwargs,
+                **kwargs)
+
+    def sample_to_point(self,
+                        x_names,
+                        y_names,
+                        broadcast=True,
+                        axes=None,
+                        subplots_kwargs=None,
+                        **kwargs):
+        if broadcast:
+            return self.plot_xygeneral('sample_to_point',
+                                       x_names,
+                                       y_names,
+                                       axes=axes,
+                                       subplots_kwargs=subplots_kwargs,
+                                       **kwargs)
+        else:
+            return self.plot_xygeneral_no_broadcast(
+                'sample_to_point',
                 x_names,
                 y_names,
                 axes=axes,
