@@ -334,6 +334,12 @@ class BasicDataset:
             _subsample = self[:, subsample_idx].astype(bool).to_numpy()
         return _subsample
 
+    def random_subsample(self, N, as_bool=False) -> np.ndarray:
+        subsample = np.random.choice(self.data.shape[0], N, replace=False)
+        if as_bool:
+            subsample = self.index_to_bool_subsample(subsample)
+        return subsample
+
     def inequality_to_subsample(self,
                                 inequality_string,
                                 debug=False) -> np.ndarray:
@@ -691,9 +697,9 @@ class Dataset(BasicDataset):
                                     axes=None,
                                     subplots_kwargs=None,
                                     **kwargs):
-        
+
         # TODO: return all extra returns by each method
-        
+
         x_names = string_to_list(x_names)
         y_names = string_to_list(y_names)
 
