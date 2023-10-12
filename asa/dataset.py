@@ -513,11 +513,11 @@ class Dataset(BasicDataset):
         y = self.get_data_by_name(y_name)
 
         if z_name is None:
-            z_name = np.ones_like(x)
-            print("z_name is not specified, use np.ones_like(x) instead")
+            z = np.ones_like(x)
+            print("z_name is not specified, use z = np.ones_like(x)")
             print("I think you'd like to specify z_name")
-
-        z = self.get_data_by_name(z_name)
+        else:
+            z = self.get_data_by_name(z_name)
 
         _subsample = self.get_subsample(subsample)
         weights = kwargs.pop('weights', None)
@@ -530,6 +530,9 @@ class Dataset(BasicDataset):
                      ax=ax,
                      weights=_weights,
                      **kwargs)
+        
+        if title is None:
+            title = self.get_label_by_name(z_name)
 
         self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
                                ylim)
