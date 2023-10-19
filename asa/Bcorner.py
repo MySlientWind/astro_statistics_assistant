@@ -656,6 +656,9 @@ def hist2d(x,
         adding the density colormap.
 
     """
+    x = np.asarray(x)
+    y = np.asarray(y)
+
     bad = flag_bad(x) | flag_bad(y)
     x = x[~bad]
     y = y[~bad]

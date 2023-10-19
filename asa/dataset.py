@@ -583,7 +583,7 @@ class Dataset(BasicDataset):
             weights, str) else weights
         _weights = weights[_subsample] if weights is not None else None
 
-        if not 'range' in kwargs:
+        if 'range' not in kwargs:
             kwargs['range'] = self._get_default_range(x_name, y_name)
 
         plot_contour(x[_subsample],
@@ -1000,7 +1000,7 @@ class Dataset(BasicDataset):
                 'bad_treatment other than drop is not implemented')
 
         if auto_balance:
-            if not problem_type == 'classification':
+            if problem_type != 'classification':
                 raise ValueError('auto_balance only works for classification')
             xs, y = balance_class(xs, y)
 
