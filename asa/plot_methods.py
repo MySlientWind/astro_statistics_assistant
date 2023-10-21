@@ -6,7 +6,8 @@ from statsmodels.stats.weightstats import DescrStatsW
 from scipy.stats import binned_statistic
 
 from .Bcorner import corner, hist2d, quantile
-from .utils import flag_bad, weighted_binned_statistic, bin_2d, auto_set_range
+from .utils import flag_bad, auto_set_range
+from .binning_methods import weighted_binned_statistic, bin_2d
 from .loess2d import loess_2d_map
 
 # TODO: extract common code
@@ -133,6 +134,8 @@ def plot_trend(x,
 
     func_median = lambda y, w: quantile(y, 0.5, weights=w)
     func_mean = lambda y, w: np.average(y, weights=w).reshape(1)
+
+    # TODO: extract as a standalone method, support more statistic
 
     is_y_in_range = (y > yrange[0]) & (y < yrange[1])
 
