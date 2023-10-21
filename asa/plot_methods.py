@@ -24,12 +24,12 @@ def plot_trend(x,
                auto_p=None,
                weights=None,
                N_min=1,
-               ifscatter=False,
                lowlim=25,
                uplim=75,
-               fkind="fbetween",
+               fkind=None,
                prop_kwargs=None,
-               plot_scatter_kwargs=None,
+               errorbar_kwargs=None,
+               fbetween_kwargs=None,
                plot_kwargs=None):  # sourcery skip: avoid-builtin-shadow
     """
     Make a plot to show the trend between x and y
@@ -100,17 +100,6 @@ def plot_trend(x,
     if plot_kwargs is None:
         plot_kwargs = {}
 
-    if ifscatter:
-        if plot_scatter_kwargs is None:
-            plot_scatter_kwargs = {}
-            plot_scatter_kwargs["color"] = plot_kwargs.get("color", "r")
-            plot_scatter_kwargs["alpha"] = 0.2
-        else:
-            if "color" not in plot_scatter_kwargs:
-                plot_scatter_kwargs["color"] = plot_kwargs.get("color", "r")
-            if "alpha" not in plot_scatter_kwargs:
-                plot_scatter_kwargs["alpha"] = 0.2
-
     if prop_kwargs is not None:
         props = prop_kwargs["props"]
         pmin = prop_kwargs.get("pmin", min(props))
@@ -119,6 +108,8 @@ def plot_trend(x,
         x = x[prop_index]
         y = y[prop_index]
         # print(np.shape(x), np.shape(y))
+
+    ifscatter = fkind is not None
 
     bad = flag_bad(x) | flag_bad(y)
     x = x[~bad]
@@ -184,13 +175,24 @@ def plot_trend(x,
 
     if ifscatter:
         if fkind == "errorbar":
+            if errorbar_kwargs is None:
+                errorbar_kwargs = {}
             ax.errorbar(loads[:, 0],
                         loads[:, 1],
-                        yerr=(loads[:, 2] - loads[:, 3]) / 2.0,
-                        **plot_scatter_kwargs)
+                        yerr=(loads[:, 3] - loads[:, 2]) / 2.0,
+                        **errorbar_kwargs)
         elif fkind == "fbetween":
+            if fbetween_kwargs is None:
+                fbetween_kwargs = {}
+                fbetween_kwargs["color"] = plot_kwargs.get("color", "r")
+                fbetween_kwargs["alpha"] = 0.2
+            else:
+                if "color" not in fbetween_kwargs:
+                    fbetween_kwargs["color"] = plot_kwargs.get("color", "r")
+                if "alpha" not in fbetween_kwargs:
+                    fbetween_kwargs["alpha"] = 0.2
             ax.fill_between(loads[:, 0], loads[:, 3], loads[:, 2],
-                            **plot_scatter_kwargs)
+                            **fbetween_kwargs)
 
 
 def plot_scatter(x,
@@ -476,11 +478,18 @@ def plot_sample_to_point(x,
         y_err = np.abs(y_quant - y_cen)
     else:
         raise ValueError('error_type must be one of std, std_mean or quantile')
-        
+
     ax.errorbar(x_cen, y_cen, xerr=x_err, yerr=y_err, **errorbar_kwargs)
 
 
-def plot_line(x=None, y=None, p1=None, p2=None, k=None, b=None, ax=None, **kwargs):
+def plot_line(x=None,
+              y=None,
+              p1=None,
+              p2=None,
+              k=None,
+              b=None,
+              ax=None,
+              **kwargs):
 
     if ax is None:
         ax = plt.gca()
