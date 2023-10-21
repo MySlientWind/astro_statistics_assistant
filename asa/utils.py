@@ -40,20 +40,22 @@ def is_float(x):
     '''
     check if x is kind of float, such as built-in float, np.float32, np.float64, np.ndarray of float, list of float...
     '''
-    return isinstance(x, float) or isinstance(x, np.float32) or isinstance(
-        x,
-        np.float64) or (isinstance(x, np.ndarray) and x.dtype.kind == 'f') or (
-            isinstance(x, list) and all(isinstance(y, float) for y in x))
+    return (
+        isinstance(x, (float, np.float32, np.float64))
+        or (isinstance(x, np.ndarray) and x.dtype.kind == 'f')
+        or (isinstance(x, list) and all(isinstance(y, float) for y in x))
+    )
 
 
 def is_int(x):
     '''
     check if x is kind of int, such as built-in int, np.int32, np.int64, np.ndarray of int, list of int...
     '''
-    return isinstance(x, int) or isinstance(x, np.int32) or isinstance(
-        x, np.int64) or (isinstance(x, np.ndarray) and x.dtype.kind
-                         == 'i') or (isinstance(x, list)
-                                     and all(isinstance(y, int) for y in x))
+    return (
+        isinstance(x, (int, np.int32, np.int64))
+        or (isinstance(x, np.ndarray) and x.dtype.kind == 'i')
+        or (isinstance(x, list) and all(isinstance(y, int) for y in x))
+    )
 
 
 def is_bool(x):

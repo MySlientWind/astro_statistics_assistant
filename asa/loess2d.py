@@ -23,10 +23,7 @@ class LOESS2D:
         self._xn = self._xnorm(x)
         self._yn = self._ynorm(y)
         self._val = val.copy()
-        if w is None:
-            self._w = np.ones_like(x)
-        else:
-            self._w = w.copy()
+        self._w = np.ones_like(x) if w is None else w.copy()
         self._tree = KDTree(
             np.column_stack((self._xn, self._yn)), copy_data=True, boxsize=boxsize
         )

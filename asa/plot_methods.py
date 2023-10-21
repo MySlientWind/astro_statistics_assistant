@@ -482,27 +482,28 @@ def plot_line(x=None, y=None, p1=None, p2=None, k=None, b=None, ax=None, **kwarg
     if ax is None:
         ax = plt.gca()
 
-    if not x is None:
+    if x is not None:
         ax.axvline(x, **kwargs)
         return
-    
-    if not y is None:
+
+    if y is not None:
         ax.axhline(y, **kwargs)
         return
 
-    if not p1 is None:
-        if not p2 is None:
+    if p1 is not None:
+        if p2 is not None:
             ax.axline(p1, p2, **kwargs)
             return
-        elif not k is None:
+        elif k is not None:
             ax.axline(p1, slope=k, **kwargs)
             return
-        elif not b is None:
+        elif b is not None:
             ax.axline(p1, slope=(p1[1] - b) / p1[0], **kwargs)
             return
-    
-    if not k is None:
-        if not b is None:
+
+    # sourcery skip: merge-nested-ifs
+    if k is not None:
+        if b is not None:
             ax.axline((0, b), slope=k, **kwargs)
             return
 

@@ -256,11 +256,7 @@ class BasicDataset:
     def get_label_by_name(self, name, with_unit=True) -> str:
         # sourcery skip: remove-unnecessary-else, swap-if-else-branches
 
-        if with_unit:
-            unit = self.get_unit_label_by_name(name)
-        else:
-            unit = ''
-
+        unit = self.get_unit_label_by_name(name) if with_unit else ''
         if '@' in name:
             op, name = name.split('@')
             return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + unit
@@ -275,12 +271,10 @@ class BasicDataset:
     def get_unit_label_by_name(self, name):
         if '@' in name:
             _, name = name.split('@')
-            unit = ' ' + self.unit_labels.get(name, '')
-        else:
-            unit = ' ' + self.unit_labels.get(name, '')
-        return unit
+        return ' ' + self.unit_labels.get(name, '')
 
     def get_range_by_name(self, name):
+        # sourcery skip: last-if-guard, remove-unnecessary-else
         if '@' in name:
             if name in self.ranges:
                 return self.ranges[name]
@@ -644,11 +638,7 @@ class Dataset(BasicDataset):
 
         x = self.get_data_by_name(x_name)
         y = self.get_data_by_name(y_name)
-        if z_name is None:
-            _z = None
-        else:
-            _z = self.get_data_by_name(z_name)
-
+        _z = None if (z_name is None) else self.get_data_by_name(z_name)
         _subsample = self.get_subsample(subsample)
         weights = kwargs.pop('weights', None)
         weights = self.get_data_by_name(weights) if isinstance(
