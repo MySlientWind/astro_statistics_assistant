@@ -99,6 +99,7 @@ def auto_set_range(x, y, _range, auto_p):
 
 
 def weighted_binned_statistic(x, y, w, bins=10, statistic=None, range=None):
+    # TODO: least number in each bin
     _, edges, bin_index = binned_statistic(x,
                                            y,
                                            statistic='count',

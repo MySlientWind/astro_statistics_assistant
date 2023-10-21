@@ -511,7 +511,7 @@ def corner(xs,
     return fig
 
 
-def quantile(x, q, weights=None):
+def quantile(x, q, weights=None, N_min=2):
     """
     Compute sample quantiles with support for weighted samples.
 
@@ -530,7 +530,11 @@ def quantile(x, q, weights=None):
        ``[0, 1]``.
 
     weights : Optional[array_like[nsamples,]]
-        An optional weight corresponding to each sample. These
+        An optional weight corresponding to each sample. 
+    
+    N_min : int
+        The minimum number of samples required in an output bin. If there are
+        not enough samples, the bin will be returned as `nan`. 
 
     Returns
     -------
@@ -544,11 +548,16 @@ def quantile(x, q, weights=None):
         between ``x`` and ``weights``.
 
     """
+    x = np.asarray(x)
+
     x_bad = flag_bad(x)
     x = x[~x_bad]
 
     x = np.atleast_1d(x)
     q = np.atleast_1d(q)
+
+    if x.size < N_min:
+        return np.nan + np.zeros(q.shape)
 
     if np.any(q < 0.0) or np.any(q > 1.0):
         raise ValueError("Quantiles must be between 0 and 1")

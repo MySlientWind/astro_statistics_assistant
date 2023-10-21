@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 from statsmodels.stats.weightstats import DescrStatsW
-# from scipy.stats import binned_statistic
+from scipy.stats import binned_statistic
 
 from .Bcorner import corner, hist2d, quantile
 from .utils import flag_bad, weighted_binned_statistic, bin_2d, auto_set_range
@@ -22,6 +22,7 @@ def plot_trend(x,
                range=None,
                auto_p=None,
                weights=None,
+               N_min=1,
                ifscatter=False,
                lowlim=25,
                uplim=75,
@@ -61,6 +62,9 @@ def plot_trend(x,
 
     weights: Optional[array_like[nsamples,]] 
         An optional weight corresponding to each sample.
+
+    N_min: int
+        The minimum number of samples in each bin to plot the trend
     
     ax : matplotlib.Axes
         A axes instance on which to add the line.
@@ -165,6 +169,13 @@ def plot_trend(x,
         loads.append(_value)
 
     loads = np.hstack(loads)
+
+    N_in_each_bin, _, _ = binned_statistic(x[is_y_in_range],
+                                           x[is_y_in_range],
+                                           statistic='count',
+                                           bins=bins,
+                                           range=xrange)
+    loads[N_in_each_bin < N_min] = np.nan
 
     ax.plot(loads[:, 0], loads[:, 1], **plot_kwargs)
 
