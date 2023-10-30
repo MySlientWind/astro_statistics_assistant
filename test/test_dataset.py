@@ -2,9 +2,11 @@ import pytest
 import numpy as np
 from asa.dataset import Dataset
 from asa.dataset import parse_inequality
+import asa.uncertainty as unc
 
 
 class TestDataset:
+
     def gen_dataset(self):
         x = np.arange(10)
         y = np.arange(10) * 2
@@ -172,3 +174,43 @@ class TestDataset:
         assert np.array_equal(dataset.get_data_by_name('x'), x)
         assert np.array_equal(dataset.get_data_by_names(['x', 'y']),
                               np.array([x, y]).T)
+
+        x = np.arange(10) + 1
+        x_err = (np.arange(10) + 1) * 0.1
+        dataset = Dataset(np.array([x, x_err]).T, ['x', 'x_err'])
+        assert np.array_equal(dataset.get_data_by_name('x'), x)
+        assert np.array_equal(dataset.get_data_by_name('x_err'), x_err)
+        assert np.allclose(dataset.get_data_by_name('x_snr'),
+                           np.abs(x / x_err))
+
+        assert np.allclose(dataset.get_data_by_name('log10@x'), np.log10(x))
+
+        assert np.allclose(dataset.get_data_by_name('x_snr'),
+                           np.abs(x / x_err))
+        assert np.allclose(dataset.get_data_by_name('log10@x_err'),
+                           unc.log10(x, x_err))
+        assert np.allclose(dataset.get_data_by_name('log10@x_snr'),
+                           np.abs(np.log10(x) / unc.log10(x, x_err)))
+
+        dataset = Dataset(np.array([x, x_err]).T, ['x', 'x_errerr'],
+                          err_postfix='errerr')
+        assert np.array_equal(dataset.get_data_by_name('x_errerr'), x_err)
+
+        with pytest.raises(ValueError) as excinfo:
+            dataset.get_data_by_name('x_err')
+        assert "'x_err' is not in list" == str(excinfo.value)
+
+        x_snr = x / x_err
+        dataset = Dataset(np.array([x, x_snr]).T, ['x', 'x_snr'])
+        assert np.array_equal(dataset.get_data_by_name('x_snr'), x_snr)
+        assert np.allclose(dataset.get_data_by_name('x_err'), x_err)
+        assert np.allclose(dataset.get_data_by_name('log10@x_snr'),
+                           unc.log10_snr(x, x_snr))
+        assert np.allclose(dataset.get_data_by_name('log10@x_err'),
+                           unc.log10(x, x_err))
+
+        # potential false positive
+        dataset = Dataset(
+            np.array([x, x_snr, x, x]).T, ['x', 'x_snr', 'snr_x', 'xsnr'])
+        assert np.array_equal(dataset.get_data_by_name('snr_x'), x)
+        assert np.array_equal(dataset.get_data_by_name('xsnr'), x)

@@ -8,6 +8,7 @@ from scipy.stats import binned_statistic, binned_statistic_2d
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
 from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
+from .uncertainty import uncertainty as unc
 
 _range = range
 
@@ -20,13 +21,23 @@ class BasicDataset:
 
     OP_MAP: Dict[str, Callable] = {'log10': np.log10, 'square': np.square}
     OP_MAP_LABEL: Dict[str, str] = {'log10': r'$\log$', 'square': ''}
+    OP_SNR_MAP: Dict[str, Callable] = {
+        'log10': unc.log10_snr,
+        'square': unc.square_snr
+    }
+    OP_ERR_MAP: Dict[str, Callable] = {
+        'log10': unc.log10,
+        'square': unc.square
+    }
 
     def __init__(self,
                  data,
                  names=None,
                  labels: Union[Dict, List, None] = None,
                  ranges: Union[Dict, List, None] = None,
-                 unit_labels: Union[Dict, List, None] = None) -> None:
+                 unit_labels: Union[Dict, List, None] = None,
+                 snr_postfix='snr',
+                 err_postfix='err') -> None:
         # TODO: units
 
         self.data: pd.DataFrame
@@ -34,6 +45,9 @@ class BasicDataset:
         self.labels: Dict[str, str]
         self.ranges: Dict[str, Union[List, None]]
         self.unit_labels: Dict[str, str]
+
+        self.snr_postfix: str = snr_postfix
+        self.err_postfix: str = err_postfix
 
         if isinstance(data, pd.DataFrame):
             self.data = data
@@ -169,10 +183,10 @@ class BasicDataset:
 
     def __str__(self) -> str:
         summary_string = "" + 'Dataset summary:\n'
-        summary_string += f'  Data shape: {str(self.data.shape)}' + '\n'
-        summary_string += f'  Names: {str(self.names)}' + '\n'
+        summary_string += f'  Data shape: {self.data.shape}\n'
+        summary_string += f'  Names: {self.names}\n'
         label_lst = [self.labels.get(name, name) for name in self.names]
-        summary_string += f'  Labels: {str(label_lst)}' + '\n'
+        summary_string += f'  Labels: {label_lst}\n'
         return summary_string
 
     def update_labels(self, labels_dict) -> None:
@@ -244,11 +258,72 @@ class BasicDataset:
 
     def get_data_by_name(self, name) -> np.ndarray:
         # sourcery skip: remove-unnecessary-else, swap-if-else-branches
+        if name.endswith(f'_{self.snr_postfix}'):
+            return self.get_snr_by_name(name)
+        elif name.endswith(f'_{self.err_postfix}'):
+            return self.get_err_by_name(name)
         if '@' in name:
             op, name = name.split('@')
             return self.OP_MAP[op](self[name].to_numpy())
         else:
             return self[name].to_numpy()
+
+    def get_snr_by_name(self, snr_name: str) -> np.ndarray:
+        '''
+        input:
+            snr_name: string
+            in format: [{op}@]{data_name}_{snr_postfix}
+            [] means optional
+        
+        return:
+            snr: np.ndarray
+            The snr of {op}({data_name})
+        '''
+        if '@' in snr_name:
+            op, snr_name = snr_name.split('@')
+            data_name = snr_name[:-len(self.snr_postfix) - 1]
+            return self.OP_SNR_MAP[op](self.get_data_by_name(data_name),
+                                       self.get_data_by_name(snr_name))
+        else:
+            # sourcery skip: remove-unnecessary-else
+            # if in names, just return it
+            data_name = snr_name[:-len(self.snr_postfix) - 1]
+            if snr_name in self.names:
+                return self[snr_name].to_numpy()
+            # if not in names, try to find the snr
+            else:
+                err_name = f'{data_name}_{self.err_postfix}'
+                if err_name in self.names:
+                    return np.abs(self[data_name].to_numpy()
+                                  ) / self[err_name].to_numpy()
+                else:
+                    raise ValueError(
+                        f'can not find err_name: {err_name}, nor snr_name: {snr_name}'
+                    )
+
+    def get_err_by_name(self, err_name) -> np.ndarray:
+        
+        if '@' in err_name:
+            op, err_name = err_name.split('@')
+            data_name = err_name[:-len(self.err_postfix) - 1]
+            return self.OP_ERR_MAP[op](self.get_data_by_name(data_name),
+                                       self.get_data_by_name(err_name))
+        else:
+            # sourcery skip: remove-unnecessary-else
+            # if in names, just return it
+            data_name = err_name[:-len(self.err_postfix) - 1]
+            if err_name in self.names:
+                return self[err_name].to_numpy()
+            # if not in names, try to find the snr
+            else:
+                snr_name = f'{data_name}_{self.snr_postfix}'
+                if snr_name in self.names:
+                    return np.abs(self[data_name].to_numpy()
+                                  ) / self[snr_name].to_numpy()
+                else:
+                    raise ValueError(
+                        f'can not find err_name: {err_name}, nor snr_name: {snr_name}'
+                    )
 
     def get_data_by_names(self, names) -> np.ndarray:
         return np.asarray([self.get_data_by_name(name) for name in names]).T
@@ -341,6 +416,7 @@ class BasicDataset:
         Return the subsample according to the inequality string.
         '''
         # TODO: support & and |
+        # TODO: support +, -, *, /
         inequality_list = parse_inequality(inequality_string)
         names_list = list(self.names)
         subsample = np.ones(self.data.shape[0]).astype(bool)
@@ -446,13 +522,17 @@ class Dataset(BasicDataset):
                  names=None,
                  labels=None,
                  ranges=None,
-                 unit_labels=None) -> None:
+                 unit_labels=None,
+                 snr_postfix='snr',
+                 err_postfix='err') -> None:
 
         super().__init__(data,
                          names=names,
                          labels=labels,
                          ranges=ranges,
-                         unit_labels=unit_labels)
+                         unit_labels=unit_labels,
+                         snr_postfix=snr_postfix,
+                         err_postfix=err_postfix)
 
         self.method_mapping = {
             'trend': self._trend,
@@ -524,7 +604,7 @@ class Dataset(BasicDataset):
                      ax=ax,
                      weights=_weights,
                      **kwargs)
-        
+
         if title is None:
             title = self.get_label_by_name(z_name)
 

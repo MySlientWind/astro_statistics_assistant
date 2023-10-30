@@ -117,3 +117,9 @@ def get_kwargs_each(fixed_kwargs, changed_kwargs, shape):
             for key, value in changed_kwargs.items():
                 kwargs_each[-1][-1][key] = value[i][j]
     return kwargs_each
+
+def flat_and_remove_bad(xs):
+    bad = np.zeros_like(xs[0].flatten(), dtype=bool)
+    for x in xs:
+        bad |= flag_bad(x.flatten())
+    return [x.flatten()[~bad] for x in xs]

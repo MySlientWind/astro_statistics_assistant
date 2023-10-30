@@ -1,7 +1,9 @@
+from scipy.stats import pearsonr, spearmanr
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
+from .utils import flat_and_remove_bad
 
 def get_RF_importance(x,
                       y,
@@ -53,3 +55,13 @@ def get_RF_importance(x,
         return feature_importance, rf, X_train, X_test, y_train, y_test
     else:
         return feature_importance
+
+
+def get_correlation_coefficients(x, y):
+    # TODO: more correlation coefficients
+    x, y = flat_and_remove_bad([x, y])
+    spearmanr_res = spearmanr(x, y)
+    return {
+        'spearmanr': (spearmanr_res[0], spearmanr_res[1]),
+        'pearsonr': pearsonr(x, y)
+    }
