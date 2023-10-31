@@ -31,13 +31,15 @@ def std(x, w=None, ddof=0):  # sourcery skip: remove-unnecessary-else
     We use the effect sample size for ddof correction in weighted std
     https://en.wikipedia.org/wiki/Design_effect#Effective_sample_size
     '''
+    N = get_effect_sample_size(w) if w is not None else x.size
+    if N - ddof <= 0:
+        return np.nan
     if w is None:
         return np.std(x, ddof=ddof)
     else:
-        N_eff = get_effect_sample_size(w)
         return np.sqrt(
             np.average(
-                (x - mean(x, w))**2, weights=w) * N_eff / (N_eff - ddof))
+                (x - mean(x, w))**2, weights=w) * N / (N - ddof))
 
 
 def std_mean(x, w=None, ddof=0):
@@ -53,6 +55,8 @@ def std_mean(x, w=None, ddof=0):
 def std_median(x, w=None, **kde_kwargs):
     kde = KernelDensity(**kde_kwargs).fit(x.reshape(-1, 1), sample_weight=w)
     m = median(x, w)
+    if np.isnan(m):
+        return np.nan
     fm = np.exp(kde.score_samples(np.array([[m]])))
     N = get_effect_sample_size(w) if w is not None else x.size
     return 1 / (2 * fm * np.sqrt(N))[0]
