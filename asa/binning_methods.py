@@ -87,16 +87,22 @@ def bin_1d(x,
             if N_in_this_bin <= min_data:
                 statistic[f'x_{x_stat}'].append(np.nan)
             else:
+                _weights = None if weights is None else weights[in_this_bin]
                 statistic[f'x_{x_stat}'].append(
-                    get_stat_method(x_stat)(x[in_this_bin], weights[in_this_bin]))
+                    get_stat_method(x_stat)(x[in_this_bin], _weights))
         for y_stat in y_statistic:
             if N_in_this_bin <= min_data:
                 statistic[f'y_{y_stat}'].append(np.nan)
             else:
+                _weights = None if weights is None else weights[in_this_bin]
                 statistic[f'y_{y_stat}'].append(
-                    get_stat_method(y_stat)(y[in_this_bin], weights[in_this_bin]))
+                    get_stat_method(y_stat)(y[in_this_bin], _weights))
 
     center = 0.5 * (edges[1:] + edges[:-1])
+
+    # to np.ndarray
+    for k in statistic:
+        statistic[k] = np.asarray(statistic[k])
 
     return center, edges, bin_index, statistic
 

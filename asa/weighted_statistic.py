@@ -3,6 +3,7 @@ from sklearn.neighbors import KernelDensity
 
 from .Bcorner import quantile as _quantile
 
+# TODO: in batch by axis
 
 def quantile(x, q, weights=None, N_min=2):
     '''

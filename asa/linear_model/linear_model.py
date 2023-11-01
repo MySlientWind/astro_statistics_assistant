@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 
 import emcee
 
-from ..utils import flat_and_remove_bad
+from ..utils import flat_and_remove_bad, all_asarray
 
 def get_linear_model(k, b):
     def func(x):
@@ -15,7 +15,8 @@ def get_linear_model(k, b):
 
 def get_OLS(x, y, return_res=False):
     # y = kx + b
-    x, y = flat_and_remove_bad([x, y])
+    x, y = preprocess([x, y])
+
     X = sm.add_constant(x)
     model = sm.OLS(y, X)
     results = model.fit()
@@ -35,7 +36,8 @@ def get_OLS(x, y, return_res=False):
 
 def get_WLS(x, y, y_err, return_res=False):
     # y = kx + b
-    x, y, y_err = flat_and_remove_bad([x, y, y_err])
+    x, y, y_err = preprocess([x, y, y_err])
+
     X = sm.add_constant(x)
     model = sm.WLS(y, X, weights=1. / np.square(y_err))
     results = model.fit()
@@ -62,7 +64,7 @@ def get_ODR(x, y, x_err=None, y_err=None, return_res=False):
     if y_err is None:
         y_err = np.ones_like(y)
 
-    x, y, x_err, y_err = flat_and_remove_bad([x, y, x_err, y_err])
+    x, y, x_err, y_err = preprocess([x, y, x_err, y_err])
 
     linear = Model(f)
     mydata = Data(x, y, wd=1. / np.square(x_err), we=1. / np.square(y_err))
@@ -133,7 +135,7 @@ def maximum_likelihood(x, y, x_err, y_err, k0=1, b0=0, sig_int0=0):
         sigma2 = np.square(k * x_err) + np.square(y_err) + np.square(sig_int)
         return -0.5 * np.sum((y - model)**2 / sigma2 + np.log(sigma2))
 
-    x, y, x_err, y_err = flat_and_remove_bad([x, y, x_err, y_err])
+    x, y, x_err, y_err = preprocess([x, y, x_err, y_err])
 
     initial = np.array([k0, b0, sig_int0])
     nll = lambda *args: -log_likelihood(*args)
@@ -170,7 +172,7 @@ def mcmc_posterior(x,
         return lp + log_likelihood(theta, x, y, x_err,
                                    y_err) if np.isfinite(lp) else -np.inf
 
-    x, y, x_err, y_err = flat_and_remove_bad([x, y, x_err, y_err])
+    x, y, x_err, y_err = preprocess([x, y, x_err, y_err])
 
     if emcee_kwargs is None:
         emcee_kwargs = {}
@@ -196,3 +198,9 @@ def mcmc_posterior(x,
                      progress=emcee_kwargs.get('progress', True))
 
     return sampler
+
+def preprocess(xs):
+    '''
+    allasarray + flat_and_remove_bad
+    '''
+    return flat_and_remove_bad(all_asarray(xs))

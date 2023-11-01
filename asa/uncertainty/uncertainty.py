@@ -70,21 +70,22 @@ def square_snr(x, x_snr):
 
 # 2 elements
 
-def ratio(x, y, x_err, yerr):
+def ratio(x, y, x_err, y_err):
     '''
-    |x/y| * ((x_err/x)**2 + (yerr/y)**2)**0.5
+    The error of x/y
+    |x/y| * ((x_err/x)**2 + (y_err/y)**2)**0.5
     or
-    ((x_err/y)**2 + (yerr * x/y**2)**2)**0.5
+    ((x_err/y)**2 + (y_err * x/y**2)**2)**0.5
     '''
-    return np.sqrt(np.square(x_err / y) + np.square((x * yerr) / np.square(y)))
+    return np.sqrt(np.square(x_err / y) + np.square((x * y_err) / np.square(y)))
 
 
-def multiply(x, y, x_err, yerr):
+def multiply(x, y, x_err, y_err):
     '''
     calculate the error of xy
-    sqrt(x**2 * yerr**2 + y**2 * x_err**2)
+    sqrt(x**2 * y_err**2 + y**2 * x_err**2)
     '''
-    return np.sqrt(np.square(x_err * y) + np.square(x * yerr))
+    return np.sqrt(np.square(x_err * y) + np.square(x * y_err))
 
 # n elements
 

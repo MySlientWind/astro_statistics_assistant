@@ -123,3 +123,6 @@ def flat_and_remove_bad(xs):
     for x in xs:
         bad |= flag_bad(x.flatten())
     return [x.flatten()[~bad] for x in xs]
+
+def all_asarray(xs):
+    return [np.asarray(x) for x in xs]
