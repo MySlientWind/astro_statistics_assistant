@@ -8,7 +8,7 @@ from scipy.stats import binned_statistic, binned_statistic_2d
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
 from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
-from .uncertainty import uncertainty as unc
+from . import uncertainty as unc
 
 _range = range
 
