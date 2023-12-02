@@ -54,7 +54,7 @@ class TestDataset:
 
         dataset, x, y, z = self.gen_dataset()
 
-        debug = False
+        debug = True
 
         assert np.array_equal(
             dataset.inequality_to_subsample("x<5", debug=debug),
@@ -68,11 +68,31 @@ class TestDataset:
 
         dataset['t'] = x + 2
         assert np.array_equal(
-            dataset.inequality_to_subsample("log10@t<np.log10(5)", debug=debug),
+            dataset.inequality_to_subsample("log10@t<np.log10(5)",
+                                            debug=debug),
             np.array(np.log10(x + 2) < np.log10(5)))
         assert np.array_equal(
             dataset.inequality_to_subsample("square@t<3", debug=debug),
             np.array(np.square(x + 2) < 3))
+
+        # operation
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x<=3+2", debug=debug),
+            np.array(x <= 5))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x/5<=1", debug=debug),
+            np.array(x <= 5))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x + y<=5", debug=debug),
+            np.array((x + y) <= 5))
+
+        # and, or
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x > 3 & y > 5", debug=debug),
+            np.array((x > 3) & (y > 5)))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x > 3 | y > 5", debug=debug),
+            np.array((x > 3) | (y > 5)))
 
     def test_check_same_length(self):
 

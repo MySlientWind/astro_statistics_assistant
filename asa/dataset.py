@@ -420,7 +420,7 @@ class BasicDataset:
     def string_to_subsample(self, string) -> np.ndarray:
         # sourcery skip: lift-return-into-if, remove-unnecessary-else
 
-        if is_inequality(string):
+        if not self.is_legal_name(string):
             _subsample = self.inequality_to_subsample(string)
         else:
             names_list = list(self.names)
@@ -437,23 +437,47 @@ class BasicDataset:
     def inequality_to_subsample(self,
                                 inequality_string,
                                 debug=False) -> np.ndarray:
+        meta_inequality_list = parse_and_or(inequality_string)
+        all_subsample = []
+        j = 0
+        for i in range(len(meta_inequality_list)):
+            if meta_inequality_list[i] not in ['&', '|']:
+                all_subsample.append(self.inequality_to_subsample_single(meta_inequality_list[i], debug=debug))
+                meta_inequality_list[i] = f'all_subsample[{j}]'
+                j += 1
+
+        command = "".join(meta_inequality_list)
+        if debug:
+            print(meta_inequality_list)
+        return eval(command)
+
+
+    def inequality_to_subsample_single(self,
+                                       inequality_string,
+                                       debug=False) -> np.ndarray:
         '''
         Return the subsample according to the inequality string.
         '''
-        # TODO: support & and |
-        # TODO: support +, -, *, /
+        # TODO: support ()
+        # TODO: support [] for &, |
+        # TODO: support =
         inequality_list = parse_inequality(inequality_string)
-        names_list = list(self.names)
         subsample = np.ones(self.data.shape[0]).astype(bool)
 
         op_list = ['<=', '>=', '<', '>']
+        # a > b > c <=> (a > b) & (b > c)
         for i, string in enumerate(inequality_list[2:]):
             if string not in op_list:
                 this_inequality = inequality_list[i:i + 3]
+                # enumerate [a, >, b]
                 for j in range(len(this_inequality)):
-                    if self.is_legal_name(this_inequality[j]):
-                        this_inequality[
-                            j] = f"self.get_data_by_name('{this_inequality[j]}')"
+                    all_element_in_this = parse_op(this_inequality[j])
+                    # enumerate [a1, +, a2]
+                    for k, ele in enumerate(all_element_in_this):
+                        if self.is_legal_name(ele):
+                            all_element_in_this[
+                                k] = f"self.get_data_by_name('{ele}')"
+                    this_inequality[j] = "".join(all_element_in_this)
 
                 command = "".join(this_inequality)
                 if debug:
@@ -534,7 +558,10 @@ class BasicDataset:
             return subsample_each, title_each, edges
         return subsample_each, title_each
 
-    def get_linear_combination_string(self, coefficients, names, string_format='.2f'):
+    def get_linear_combination_string(self,
+                                      coefficients,
+                                      names,
+                                      string_format='.2f'):
         lc_str = f'{coefficients[0]:{string_format}} {self.get_label_by_name(names[0])}'
         for this_c, this_n in zip(coefficients[1:], names[1:]):
             sign = '+' if this_c > 0 else '-' if this_c < 0 else ''
@@ -1188,6 +1215,14 @@ def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):
 def parse_inequality(inequaliyt_string):
     return re.split(r'(<=|>=|<|>)', inequaliyt_string.replace(" ", ""))
 
+
+def parse_op(string):
+    # +, -, *, /, **
+    return re.split(r'(\+|-|\*|/|\*\*)', string.replace(" ", ""))
+
+def parse_and_or(string):
+    # &, |
+    return re.split(r'(&|\|)', string.replace(" ", ""))
 
 def is_inequality(string):
     return re.search(r'(<=|>=|<|>)', string) is not None
