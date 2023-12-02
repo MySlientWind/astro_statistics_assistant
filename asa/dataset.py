@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import binned_statistic, binned_statistic_2d
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
+from .projection_methods import get_LDA_projection
 from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
 from . import uncertainty as unc
 
@@ -357,9 +358,10 @@ class BasicDataset:
         unit = self.get_unit_label_by_name(name) if with_unit else ''
         if '@' in name:
             op, name = name.split('@')
-            return self.OP_MAP_LABEL[op] + self.labels.get(name, name) + unit
+            label = self.OP_MAP_LABEL[op] + self.labels.get(name, name) + unit
         else:
-            return self.labels.get(name, name) + unit
+            label = self.labels.get(name, name) + unit
+        return label.strip()
 
     def get_labels_by_names(self, names, with_unit=True) -> List[str]:
         return [
@@ -531,6 +533,13 @@ class BasicDataset:
         if return_edges:
             return subsample_each, title_each, edges
         return subsample_each, title_each
+
+    def get_linear_combination_string(self, coefficients, names, string_format='.2f'):
+        lc_str = f'{coefficients[0]:{string_format}} {self.get_label_by_name(names[0])}'
+        for this_c, this_n in zip(coefficients[1:], names[1:]):
+            sign = '+' if this_c > 0 else '-' if this_c < 0 else ''
+            lc_str += f' {sign} {np.abs(this_c):{string_format}} {self.get_label_by_name(this_n)}'
+        return lc_str
 
 
 class Dataset(BasicDataset):
@@ -1115,8 +1124,48 @@ class Dataset(BasicDataset):
                            x_names,
                            y_name,
                            n_components=2,
+                           subsample=None,
+                           bad_treatment='drop',
+                           string_format='.2f',
+                           plot=False,
                            return_more=False):
-        ...
+
+        x_names = string_to_list(x_names)
+        xs = self.get_data_by_names(x_names)
+        y = self.get_data_by_name(y_name)
+        _subsample = self.get_subsample(subsample)
+        xs = xs[_subsample]
+        y = y[_subsample]
+
+        if is_bool(y):
+            y = y.astype(int)
+
+        if bad_treatment == 'drop':
+            is_bad = flag_bad(xs).any(axis=1) | flag_bad(y)
+            xs = xs[~is_bad]
+            y = y[~is_bad]
+        else:
+            raise NotImplementedError(
+                'bad_treatment other than drop is not implemented')
+
+        _, lda = get_LDA_projection(xs,
+                                    y,
+                                    n_components=n_components,
+                                    return_more=True)
+
+        def lda_project(X):
+            return X @ lda.scalings_
+
+        axis_label_list = []
+        for i in range(lda.scalings_.shape[1]):
+            axis_label = self.get_linear_combination_string(
+                lda.scalings_[:, i], x_names, string_format=string_format)
+            axis_label_list.append(axis_label)
+
+        if return_more:
+            return axis_label_list, lda_project, lda
+        else:
+            return axis_label_list, lda_project
 
 
 def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):

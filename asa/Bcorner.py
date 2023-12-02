@@ -575,7 +575,7 @@ def quantile(x, q, weights=None, N_min=2):
         cdf = np.append(0, cdf)
         return np.interp(q, cdf, x[idx]).tolist()
 
-
+# TODO: reject to do KDE when sample size is too large
 def hist2d(x,
            y,
            bins=20,
