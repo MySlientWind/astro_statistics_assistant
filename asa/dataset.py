@@ -256,6 +256,29 @@ class BasicDataset:
         # reindex
         self.data.reset_index(drop=True, inplace=True)
 
+    def remove_snr_postfix(self, name) -> str:
+        if name.endswith(f'_{self.snr_postfix}'):
+            return name[:-len(self.snr_postfix) - 1]
+        else:
+            raise ValueError(f'{name} does not end with _{self.snr_postfix}')
+
+    def remove_err_postfix(self, name) -> str:
+        if name.endswith(f'_{self.err_postfix}'):
+            return name[:-len(self.err_postfix) - 1]
+        else:
+            raise ValueError(f'{name} does not end with _{self.err_postfix}')
+
+    def is_legal_name(self, name) -> bool:
+        if name.endswith(f'_{self.snr_postfix}'):
+            return self.is_legal_name(self.remove_snr_postfix(name))
+        elif name.endswith(f'_{self.err_postfix}'):
+            return self.is_legal_name(self.remove_err_postfix(name))
+        elif '@' in name:
+            op, name = name.split('@')
+            return self.is_legal_name(name) & (op in self.OP_MAP)
+        else:
+            return name in self.names
+
     def get_data_by_name(self, name) -> np.ndarray:
         # sourcery skip: remove-unnecessary-else, swap-if-else-branches
         if name.endswith(f'_{self.snr_postfix}'):
@@ -281,13 +304,13 @@ class BasicDataset:
         '''
         if '@' in snr_name:
             op, snr_name = snr_name.split('@')
-            data_name = snr_name[:-len(self.snr_postfix) - 1]
+            data_name = self.remove_snr_postfix(snr_name)
             return self.OP_SNR_MAP[op](self.get_data_by_name(data_name),
                                        self.get_data_by_name(snr_name))
         else:
             # sourcery skip: remove-unnecessary-else
             # if in names, just return it
-            data_name = snr_name[:-len(self.snr_postfix) - 1]
+            data_name = self.remove_snr_postfix(snr_name)
             if snr_name in self.names:
                 return self[snr_name].to_numpy()
             # if not in names, try to find the snr
@@ -302,16 +325,16 @@ class BasicDataset:
                     )
 
     def get_err_by_name(self, err_name) -> np.ndarray:
-        
+
         if '@' in err_name:
             op, err_name = err_name.split('@')
-            data_name = err_name[:-len(self.err_postfix) - 1]
+            data_name = self.remove_err_postfix(err_name)
             return self.OP_ERR_MAP[op](self.get_data_by_name(data_name),
                                        self.get_data_by_name(err_name))
         else:
             # sourcery skip: remove-unnecessary-else
             # if in names, just return it
-            data_name = err_name[:-len(self.err_postfix) - 1]
+            data_name = self.remove_err_postfix(err_name)
             if err_name in self.names:
                 return self[err_name].to_numpy()
             # if not in names, try to find the snr
@@ -426,14 +449,15 @@ class BasicDataset:
             if string not in op_list:
                 this_inequality = inequality_list[i:i + 3]
                 for j in range(len(this_inequality)):
-                    if this_inequality[j] in names_list:
-                        this_inequality[j] = f"self['{this_inequality[j]}']"
+                    if self.is_legal_name(this_inequality[j]):
+                        this_inequality[
+                            j] = f"self.get_data_by_name('{this_inequality[j]}')"
 
                 command = "".join(this_inequality)
                 if debug:
                     print(this_inequality)
 
-                subsample = subsample & eval(command).to_numpy()
+                subsample = subsample & eval(command)
 
         return subsample
 
@@ -1086,6 +1110,13 @@ class Dataset(BasicDataset):
             return feature_importance, rf, X_train, X_test, y_train, y_test
         else:
             return feature_importance
+
+    def get_LDA_projection(self,
+                           x_names,
+                           y_name,
+                           n_components=2,
+                           return_more=False):
+        ...
 
 
 def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):

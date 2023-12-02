@@ -66,6 +66,14 @@ class TestDataset:
             dataset.inequality_to_subsample("x>y", debug=debug),
             np.array(x > y))
 
+        dataset['t'] = x + 2
+        assert np.array_equal(
+            dataset.inequality_to_subsample("log10@t<np.log10(5)", debug=debug),
+            np.array(np.log10(x + 2) < np.log10(5)))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("square@t<3", debug=debug),
+            np.array(np.square(x + 2) < 3))
+
     def test_check_same_length(self):
 
         _, x, y, z = self.gen_dataset()
@@ -214,3 +222,31 @@ class TestDataset:
             np.array([x, x_snr, x, x]).T, ['x', 'x_snr', 'snr_x', 'xsnr'])
         assert np.array_equal(dataset.get_data_by_name('snr_x'), x)
         assert np.array_equal(dataset.get_data_by_name('xsnr'), x)
+
+    def test_remove_postfix(self):
+        dataset, x, y, z = self.gen_dataset()
+        assert dataset.remove_snr_postfix('x_snr') == 'x'
+        with pytest.raises(ValueError) as excinfo:
+            dataset.remove_snr_postfix('x')
+        assert "x does not end with _snr" == str(excinfo.value)
+
+        assert dataset.remove_err_postfix('x_err') == 'x'
+        with pytest.raises(ValueError) as excinfo:
+            dataset.remove_err_postfix('x')
+        assert "x does not end with _err" == str(excinfo.value)
+
+    def test_is_legal_name(self):
+        dataset, x, y, z = self.gen_dataset()
+        assert dataset.is_legal_name('x')
+        assert dataset.is_legal_name('y')
+        assert dataset.is_legal_name('z')
+        assert dataset.is_legal_name('x_err')
+        assert dataset.is_legal_name('x_snr')
+        assert dataset.is_legal_name('log10@x')
+        assert dataset.is_legal_name('log10@x_err')
+
+        assert not dataset.is_legal_name('t')
+        assert not dataset.is_legal_name('t_err')
+        assert not dataset.is_legal_name('t_snr')
+        assert not dataset.is_legal_name('log10@t')
+        assert not dataset.is_legal_name('log10@t_err')
