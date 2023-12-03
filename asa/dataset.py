@@ -437,21 +437,30 @@ class BasicDataset:
     def inequality_to_subsample(self,
                                 inequality_string,
                                 debug=False) -> np.ndarray:
-        # TODO: support [] for &, |
         meta_inequality_list = parse_and_or(inequality_string)
+        if debug:
+            print(meta_inequality_list)
         all_subsample = []
         j = 0
         for i in range(len(meta_inequality_list)):
+            if meta_inequality_list[i] in ['[', ']']:
+                meta_inequality_list[i] = {
+                    '[': '(',
+                    ']': ')'
+                }[meta_inequality_list[i]]
+                continue
             if meta_inequality_list[i] not in ['&', '|']:
-                all_subsample.append(self.inequality_to_subsample_single(meta_inequality_list[i], debug=debug))
+                all_subsample.append(
+                    self.inequality_to_subsample_single(
+                        meta_inequality_list[i], debug=False))
                 meta_inequality_list[i] = f'all_subsample[{j}]'
                 j += 1
 
         command = "".join(meta_inequality_list)
         if debug:
-            print(meta_inequality_list)
+            # print(meta_inequality_list)
+            print(command)
         return eval(command)
-
 
     def inequality_to_subsample_single(self,
                                        inequality_string,
@@ -459,7 +468,6 @@ class BasicDataset:
         '''
         Return the subsample according to the inequality string.
         '''
-        # TODO: support ()
         inequality_list = parse_inequality(inequality_string)
         subsample = np.ones(self.data.shape[0]).astype(bool)
 
@@ -1212,16 +1220,22 @@ def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):
 
 
 def parse_inequality(inequaliyt_string):
-    return re.split(r'(<=|>=|<|>|==)', inequaliyt_string.replace(" ", ""))
+    # deal with ''
+    splitted = re.split(r'(<=|>=|<|>|==)', inequaliyt_string.replace(" ", ""))
+    return [s for s in splitted if s != '']
 
 
 def parse_op(string):
     # +, -, *, /, **, (, )
-    return re.split(r'(\+|-|\*|/|\*\*|\(|\))', string.replace(" ", ""))
+    splitted = re.split(r'(\+|-|\*|/|\*\*|\(|\))', string.replace(" ", ""))
+    return [s for s in splitted if s != '']
+
 
 def parse_and_or(string):
-    # &, |
-    return re.split(r'(&|\|)', string.replace(" ", ""))
+    # &, |, [, ]
+    splitted = re.split(r'(&|\||\[|\])', string.replace(" ", ""))
+    return [s for s in splitted if s != '']
+
 
 def is_inequality(string):
     return re.search(r'(<=|>=|<|>)', string) is not None

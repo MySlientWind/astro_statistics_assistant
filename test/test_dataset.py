@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from asa.dataset import Dataset
-from asa.dataset import parse_inequality
+from asa.dataset import parse_inequality, parse_and_or, parse_op
 import asa.uncertainty as unc
 
 
@@ -35,8 +35,9 @@ class TestDataset:
         assert 'key[0] can not be string or list of string' == str(
             excinfo.value)
 
-    def test_parse_inequality(self):
+    def test_parse(self):
 
+        # parse_inequality
         assert (parse_inequality("1<=2<=x") == ['1', '<=', '2', '<=', 'x'])
         assert (parse_inequality("1>2>=x") == ['1', '>', '2', '>=', 'x'])
         assert (parse_inequality("1 <= 2 <= x") == ['1', '<=', '2', '<=', 'x'])
@@ -49,6 +50,16 @@ class TestDataset:
         assert parse_inequality("30>20") == ['30', '>', '20']
         assert parse_inequality("x<100") == ['x', '<', '100']
         assert parse_inequality("a>=b") == ['a', '>=', 'b']
+
+        # parse_and_or
+        assert parse_and_or("[x > 3 & [ y > 5 | z < 2]]") == [
+            '[', 'x>3', '&', '[', 'y>5', '|', 'z<2', ']', ']'
+        ]
+
+        # parse_op
+        assert parse_op("(x + (1 + z / x))") == [
+            '(', 'x', '+', '(', '1', '+', 'z', '/', 'x', ')', ')'
+        ]
 
     def test_inequality_to_subsample(self):
 
@@ -86,6 +97,9 @@ class TestDataset:
             dataset.inequality_to_subsample("x<=3+2", debug=debug),
             np.array(x <= 5))
         assert np.array_equal(
+            dataset.inequality_to_subsample("x<=(z+y)/2", debug=debug),
+            np.array(x <= (z + y) / 2))
+        assert np.array_equal(
             dataset.inequality_to_subsample("x<=(1+2)*2", debug=debug),
             np.array(x <= 6))
         assert np.array_equal(
@@ -97,6 +111,9 @@ class TestDataset:
         assert np.array_equal(
             dataset.inequality_to_subsample("(x + 1)/5<=1", debug=debug),
             np.array(x <= 4))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("((x + 1) + 2)/5<=1", debug=debug),
+            np.array(x <= 2))
         assert not np.array_equal(
             dataset.inequality_to_subsample("x + 1/5<=1", debug=debug),
             np.array(x <= 4))
@@ -114,6 +131,16 @@ class TestDataset:
         assert np.array_equal(
             dataset.inequality_to_subsample("x > 3 | y == 1", debug=debug),
             np.array((x > 3) | (y == 1)))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("[x > 3 & [ y > 5 | z < 2]]",
+                                            debug=debug),
+            np.array((x > 3) & ((y > 5) | (z < 2))))
+
+        # complex 
+        assert np.array_equal(
+            dataset.inequality_to_subsample("[(x + 1)/2 > 3 & [ y > 5/2 | z < 2+1]]",
+                                            debug=debug),
+            np.array((x > 5) & ((y > 2.5) | (z < 3))))
 
     def test_check_same_length(self):
 
