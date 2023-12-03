@@ -86,8 +86,20 @@ class TestDataset:
             dataset.inequality_to_subsample("x<=3+2", debug=debug),
             np.array(x <= 5))
         assert np.array_equal(
+            dataset.inequality_to_subsample("x<=(1+2)*2", debug=debug),
+            np.array(x <= 6))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x<=1+2*2", debug=debug),
+            np.array(x <= 5))
+        assert np.array_equal(
             dataset.inequality_to_subsample("x/5<=1", debug=debug),
             np.array(x <= 5))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("(x + 1)/5<=1", debug=debug),
+            np.array(x <= 4))
+        assert not np.array_equal(
+            dataset.inequality_to_subsample("x + 1/5<=1", debug=debug),
+            np.array(x <= 4))
         assert np.array_equal(
             dataset.inequality_to_subsample("x + y<=5", debug=debug),
             np.array((x + y) <= 5))

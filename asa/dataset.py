@@ -437,6 +437,7 @@ class BasicDataset:
     def inequality_to_subsample(self,
                                 inequality_string,
                                 debug=False) -> np.ndarray:
+        # TODO: support [] for &, |
         meta_inequality_list = parse_and_or(inequality_string)
         all_subsample = []
         j = 0
@@ -459,8 +460,6 @@ class BasicDataset:
         Return the subsample according to the inequality string.
         '''
         # TODO: support ()
-        # TODO: support [] for &, |
-        # TODO: support =
         inequality_list = parse_inequality(inequality_string)
         subsample = np.ones(self.data.shape[0]).astype(bool)
 
@@ -1217,8 +1216,8 @@ def parse_inequality(inequaliyt_string):
 
 
 def parse_op(string):
-    # +, -, *, /, **
-    return re.split(r'(\+|-|\*|/|\*\*)', string.replace(" ", ""))
+    # +, -, *, /, **, (, )
+    return re.split(r'(\+|-|\*|/|\*\*|\(|\))', string.replace(" ", ""))
 
 def parse_and_or(string):
     # &, |
