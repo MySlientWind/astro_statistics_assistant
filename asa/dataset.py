@@ -460,6 +460,7 @@ class BasicDataset:
             print(command)
         return eval(command)
 
+    # TODO: support ~
     def inequality_to_subsample_single(self,
                                        inequality_string,
                                        debug=False) -> np.ndarray:
@@ -515,6 +516,8 @@ class BasicDataset:
 
         if len(names) == 1:
             x = self.get_data_by_name(names[0])
+            is_bad = flag_bad(x)
+            x = x[~is_bad]
             _, edges, bin_index = binned_statistic(x,
                                                    x,
                                                    statistic='count',
@@ -538,6 +541,9 @@ class BasicDataset:
         elif len(names) == 2:
             x = self.get_data_by_name(names[0])
             y = self.get_data_by_name(names[1])
+            bad = flag_bad(x) | flag_bad(y)
+            x = x[~bad]
+            y = y[~bad]
             _, x_edges, y_edges, bin_index = binned_statistic_2d(
                 x,
                 y,
@@ -1097,6 +1103,7 @@ class Dataset(BasicDataset):
                 subplots_kwargs=subplots_kwargs,
                 **kwargs)
 
+    # TODO: support under-sampling
     def get_RF_importance(self,
                           x_names,
                           y_name,
