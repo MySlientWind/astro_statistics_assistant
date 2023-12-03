@@ -65,6 +65,12 @@ class TestDataset:
         assert np.array_equal(
             dataset.inequality_to_subsample("x>y", debug=debug),
             np.array(x > y))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x==y", debug=debug),
+            np.array(x == y))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x==5", debug=debug),
+            np.array(x == 5))
 
         dataset['t'] = x + 2
         assert np.array_equal(
@@ -93,6 +99,9 @@ class TestDataset:
         assert np.array_equal(
             dataset.inequality_to_subsample("x > 3 | y > 5", debug=debug),
             np.array((x > 3) | (y > 5)))
+        assert np.array_equal(
+            dataset.inequality_to_subsample("x > 3 | y == 1", debug=debug),
+            np.array((x > 3) | (y == 1)))
 
     def test_check_same_length(self):
 

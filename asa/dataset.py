@@ -464,7 +464,7 @@ class BasicDataset:
         inequality_list = parse_inequality(inequality_string)
         subsample = np.ones(self.data.shape[0]).astype(bool)
 
-        op_list = ['<=', '>=', '<', '>']
+        op_list = ['<=', '>=', '<', '>', '==']
         # a > b > c <=> (a > b) & (b > c)
         for i, string in enumerate(inequality_list[2:]):
             if string not in op_list:
@@ -1213,7 +1213,7 @@ def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):
 
 
 def parse_inequality(inequaliyt_string):
-    return re.split(r'(<=|>=|<|>)', inequaliyt_string.replace(" ", ""))
+    return re.split(r'(<=|>=|<|>|==)', inequaliyt_string.replace(" ", ""))
 
 
 def parse_op(string):
