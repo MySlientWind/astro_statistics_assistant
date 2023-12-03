@@ -126,3 +126,6 @@ def flat_and_remove_bad(xs):
 
 def all_asarray(xs):
     return [np.asarray(x) for x in xs]
+
+def is_empty(x):
+    return len(x) == 0

@@ -1,4 +1,5 @@
 from functools import partial
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,7 +7,7 @@ from statsmodels.stats.weightstats import DescrStatsW
 from scipy.stats import binned_statistic
 
 from .Bcorner import corner, hist2d, quantile
-from .utils import flag_bad, auto_set_range
+from .utils import flag_bad, auto_set_range, is_empty
 from .binning_methods import weighted_binned_statistic, bin_2d
 from .loess2d import loess_2d_map
 
@@ -114,6 +115,10 @@ def plot_trend(x,
     bad = flag_bad(x) | flag_bad(y)
     x = x[~bad]
     y = y[~bad]
+
+    if is_empty(x) or is_empty(y):
+        warnings.warn("The x or y are empty after remove bad data skip the plot")
+        return 
 
     range = auto_set_range(x, y, range, auto_p)
 
@@ -223,6 +228,10 @@ def plot_scatter(x,
     x = x[~bad]
     y = y[~bad]
     z = z[~bad]
+
+    if is_empty(x) or is_empty(y) or is_empty(z):
+        warnings.warn("The x, y or z are empty after remove bad data skip the plot")
+        return 
 
     range = auto_set_range(x, y, range, auto_p)
 
@@ -391,6 +400,10 @@ def plot_heatmap(x,
     x = x[~bad]
     y = y[~bad]
     z = z[~bad]
+
+    if is_empty(x) or is_empty(y) or is_empty(z):
+        warnings.warn("The x, y or z are empty after remove bad data skip the plot")
+        return 
 
     range = auto_set_range(x, y, range, auto_p)
 

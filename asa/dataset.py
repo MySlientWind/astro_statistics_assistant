@@ -39,8 +39,6 @@ class BasicDataset:
                  unit_labels: Union[Dict, List, None] = None,
                  snr_postfix='snr',
                  err_postfix='err') -> None:
-        # TODO: units
-
         self.data: pd.DataFrame
         self.names: np.ndarray
         self.labels: Dict[str, str]
@@ -528,7 +526,7 @@ class BasicDataset:
                 # TODO: different format
                 # TODO: drop min/max for first/latest bin
                 title_each.append(
-                    f'{names[0]}: [{edges[i-1]:.{title_ndigits}f}, {edges[i]:.{title_ndigits}f})'
+                    f'{self.get_label_by_name(names[0])}: [{edges[i-1]:.{title_ndigits}f}, {edges[i]:.{title_ndigits}f})'
                 )
 
                 subsample_each.append(subsample & (bin_index == i))
@@ -552,10 +550,15 @@ class BasicDataset:
             for i in _range(1, len(x_edges)):
                 for j in _range(1, len(y_edges)):
                     title_each.append(
-                        f'{names[0]}: [{x_edges[i-1]:.{title_ndigits}f}, {x_edges[i]:.{title_ndigits}f}), {names[1]}: [{y_edges[j-1]:.{title_ndigits}f}, {y_edges[j]:.{title_ndigits}f})'
+                        f'{self.get_label_by_name(names[0])}: [{x_edges[i-1]:.{title_ndigits}f}, {x_edges[i]:.{title_ndigits}f}), {self.get_label_by_name(names[1])}: [{y_edges[j-1]:.{title_ndigits}f}, {y_edges[j]:.{title_ndigits}f})'
                     )
                     subsample_each.append(subsample & (bin_index[0] == i)
                                           & (bin_index[1] == j))
+
+            # TODO: auto reshape according to bins
+            if list_shape is not None:
+                title_each = list_reshape(title_each, list_shape)
+                subsample_each = list_reshape(subsample_each, list_shape)
 
             edges = [x_edges, y_edges]
         else:
