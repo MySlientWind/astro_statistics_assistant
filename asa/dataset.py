@@ -4,11 +4,11 @@ from typing import Union, List, Callable, Any, Dict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.stats import binned_statistic, binned_statistic_2d
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
 from .projection_methods import get_LDA_projection
 from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
+from .binning_methods import binned_statistic_robust, binned_statistic_2d_robust
 from . import uncertainty as unc
 
 _range = range
@@ -516,16 +516,15 @@ class BasicDataset:
 
         if len(names) == 1:
             x = self.get_data_by_name(names[0])
-            is_bad = flag_bad(x)
-            x = x[~is_bad]
-            _, edges, bin_index = binned_statistic(x,
-                                                   x,
-                                                   statistic='count',
-                                                   bins=bins,
-                                                   range=range)
+
+            _, edges, bin_index = binned_statistic_robust(x,
+                                                          x,
+                                                          statistic='count',
+                                                          bins=bins,
+                                                          range=range)
+
             for i in _range(1, len(edges)):
 
-                # TODO: consider log10@x
                 # TODO: different format
                 # TODO: drop min/max for first/latest bin
                 title_each.append(
@@ -541,17 +540,14 @@ class BasicDataset:
         elif len(names) == 2:
             x = self.get_data_by_name(names[0])
             y = self.get_data_by_name(names[1])
-            bad = flag_bad(x) | flag_bad(y)
-            x = x[~bad]
-            y = y[~bad]
-            _, x_edges, y_edges, bin_index = binned_statistic_2d(
+
+            _, x_edges, y_edges, bin_index = binned_statistic_2d_robust(
                 x,
                 y,
                 x,
                 statistic='count',
                 bins=bins,
-                range=range,
-                expand_binnumbers=True)
+                range=range)
 
             for i in _range(1, len(x_edges)):
                 for j in _range(1, len(y_edges)):
@@ -642,7 +638,7 @@ class Dataset(BasicDataset):
                    ax=ax,
                    weights=_weights,
                    **kwargs)
-        self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
                                ylim)
         ax.legend()
 
@@ -684,7 +680,7 @@ class Dataset(BasicDataset):
         if title is None:
             title = self.get_label_by_name(z_name)
 
-        self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
                                ylim)
 
     def _contour(self,
@@ -742,7 +738,7 @@ class Dataset(BasicDataset):
                      weights=_weights,
                      **kwargs)
 
-        self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
                                ylim)
 
     def _get_default_range(self, x_name, y_name):
@@ -758,7 +754,8 @@ class Dataset(BasicDataset):
             yrange = [y.min(), y.max()]
         return [xrange, yrange]
 
-    def _set_ax_prperties(self, ax, x_name, y_name, xlabel, ylabel, title,
+    # TODO: set font size
+    def _set_ax_properties(self, ax, x_name, y_name, xlabel, ylabel, title,
                           xlim, ylim):
         if (title is not False) and (title is not None):
             ax.set_title(title)
@@ -806,7 +803,7 @@ class Dataset(BasicDataset):
                      ax=ax,
                      weights=_weights,
                      **kwargs)
-        self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
                                ylim)
         if kwargs.get('label', None) is not None:
             ax.legend()
@@ -836,7 +833,7 @@ class Dataset(BasicDataset):
                              weights=_weights,
                              **kwargs)
 
-        self._set_ax_prperties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
                                ylim)
 
     def plot_xygeneral_no_broadcast(self,

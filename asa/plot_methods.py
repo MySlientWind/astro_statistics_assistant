@@ -238,8 +238,8 @@ def plot_scatter(x,
     xrange = range[0]
     yrange = range[1]
 
-    is_in_range = (x > xrange[0]) & (x < xrange[1]) & (y > yrange[0]) & (
-        y < yrange[1])
+    is_in_range = (x >= xrange[0]) & (x <= xrange[1]) & (y >= yrange[0]) & (
+        y <= yrange[1])
 
     if plot_kwargs is None:
         plot_kwargs = {}

@@ -4,8 +4,63 @@ import numpy as np
 from scipy.stats import binned_statistic, binned_statistic_2d
 
 from .weighted_statistic import median, mean, std, std_mean, std_median, q
+from .utils import flag_bad
 
 _range = range
+
+
+def binned_statistic_robust(x, values, statistic='mean', bins=10, range=None):
+    '''
+    Deal with the nan and inf:
+        statistic_res: ignore
+        bin_edges: ignore
+        binnumber: -1
+    '''
+    is_bad = flag_bad(x) | flag_bad(values)
+    _x = x[~is_bad]
+    _values = values[~is_bad]
+
+    statistic_res, bin_edges, _binnumber = binned_statistic(
+        _x, _values, statistic=statistic, bins=bins, range=range)
+
+    binnumber = np.full(len(x), -1)
+    binnumber[~is_bad] = _binnumber
+
+    return statistic_res, bin_edges, binnumber
+
+
+def binned_statistic_2d_robust(x,
+                               y,
+                               values,
+                               statistic='mean',
+                               bins=10,
+                               range=None):
+    '''
+    Note that expand_binnumbers is always True
+    '''
+
+    is_bad = flag_bad(x) | flag_bad(y) | flag_bad(values)
+    _x = x[~is_bad]
+    _y = y[~is_bad]
+    _values = values[~is_bad]
+
+    statistic_res, x_edge, y_edge, _binnumber = binned_statistic_2d(
+        _x,
+        _y,
+        _values,
+        statistic=statistic,
+        bins=bins,
+        range=range,
+        expand_binnumbers=True)
+    
+    binnumber_x = np.full(len(x), -1)
+    binnumber_y = np.full(len(y), -1)
+    binnumber_x[~is_bad] = _binnumber[0]
+    binnumber_y[~is_bad] = _binnumber[1]
+    binnumber = np.stack([binnumber_x, binnumber_y], axis=0)
+
+    return statistic_res, x_edge, y_edge, binnumber
+
 
 
 def weighted_binned_statistic(x, y, w, bins=10, statistic=None, range=None):
