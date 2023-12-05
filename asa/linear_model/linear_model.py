@@ -5,13 +5,15 @@ from scipy.optimize import minimize
 
 import emcee
 
-from ..utils import flat_and_remove_bad, all_asarray
+from ..utils import remove_bad, all_asarray, flag_bad
+
 
 def get_linear_model(k, b):
     def func(x):
         return k * x + b
 
     return func
+
 
 def get_OLS(x, y, return_res=False):
     # y = kx + b
@@ -32,6 +34,18 @@ def get_OLS(x, y, return_res=False):
     std = np.std(func(x) - y)
 
     return {'k': (k, k_err), 'b': (b, b_err), 'std': std, 'func': func}
+
+
+def get_OLS_nd(X, y):
+    X, y = preprocess([X, y])
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X)
+    results = model.fit()
+
+    def func(X):
+        return results.predict(sm.add_constant(X))
+
+    return results, func
 
 
 def get_WLS(x, y, y_err, return_res=False):
@@ -199,8 +213,9 @@ def mcmc_posterior(x,
 
     return sampler
 
+
 def preprocess(xs):
     '''
-    allasarray + flat_and_remove_bad
+    allasarray + remove_bad
     '''
-    return flat_and_remove_bad(all_asarray(xs))
+    return remove_bad(all_asarray(xs))

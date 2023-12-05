@@ -1,5 +1,5 @@
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from .utils import flat_and_remove_bad
+from .utils import remove_bad
 
 
 def get_LDA_projection(x,
@@ -22,8 +22,6 @@ def get_LDA_projection(x,
     """
     if LDA_kwargs is None:
         LDA_kwargs = {}
-
-    # x, y = flat_and_remove_bad([x, y])
 
     lda = LinearDiscriminantAnalysis(n_components=n_components, **LDA_kwargs)
     lda.fit(x, y)

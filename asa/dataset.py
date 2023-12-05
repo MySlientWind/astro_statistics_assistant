@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
 from .projection_methods import get_LDA_projection
-from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class
+from .feature_selection_methods import search_combination_OLS
+from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class, remove_bad
 from .binning_methods import binned_statistic_robust, binned_statistic_2d_robust
 from . import uncertainty as unc
 
@@ -542,12 +543,7 @@ class BasicDataset:
             y = self.get_data_by_name(names[1])
 
             _, x_edges, y_edges, bin_index = binned_statistic_2d_robust(
-                x,
-                y,
-                x,
-                statistic='count',
-                bins=bins,
-                range=range)
+                x, y, x, statistic='count', bins=bins, range=range)
 
             for i in _range(1, len(x_edges)):
                 for j in _range(1, len(y_edges)):
@@ -581,6 +577,7 @@ class BasicDataset:
         return lc_str
 
 
+# TODO: split PlotDataset and Dataset
 class Dataset(BasicDataset):
 
     # -- Note -- that all values passed to plot_xxx should be numpy array, not series
@@ -638,8 +635,8 @@ class Dataset(BasicDataset):
                    ax=ax,
                    weights=_weights,
                    **kwargs)
-        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
-                               ylim)
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title,
+                                xlim, ylim)
         ax.legend()
 
     def _heatmap(self,
@@ -680,8 +677,8 @@ class Dataset(BasicDataset):
         if title is None:
             title = self.get_label_by_name(z_name)
 
-        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
-                               ylim)
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title,
+                                xlim, ylim)
 
     def _contour(self,
                  x_name,
@@ -738,8 +735,8 @@ class Dataset(BasicDataset):
                      weights=_weights,
                      **kwargs)
 
-        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
-                               ylim)
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title,
+                                xlim, ylim)
 
     def _get_default_range(self, x_name, y_name):
         xrange = self.get_range_by_name(x_name)
@@ -756,7 +753,7 @@ class Dataset(BasicDataset):
 
     # TODO: set font size
     def _set_ax_properties(self, ax, x_name, y_name, xlabel, ylabel, title,
-                          xlim, ylim):
+                           xlim, ylim):
         if (title is not False) and (title is not None):
             ax.set_title(title)
 
@@ -803,8 +800,8 @@ class Dataset(BasicDataset):
                      ax=ax,
                      weights=_weights,
                      **kwargs)
-        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
-                               ylim)
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title,
+                                xlim, ylim)
         if kwargs.get('label', None) is not None:
             ax.legend()
 
@@ -833,8 +830,8 @@ class Dataset(BasicDataset):
                              weights=_weights,
                              **kwargs)
 
-        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title, xlim,
-                               ylim)
+        self._set_ax_properties(ax, x_name, y_name, xlabel, ylabel, title,
+                                xlim, ylim)
 
     def plot_xygeneral_no_broadcast(self,
                                     kind,
@@ -1113,15 +1110,8 @@ class Dataset(BasicDataset):
                           **kwargs):
         # TODO: auto tune hyperparameters
 
-        x_names = string_to_list(x_names)
-        xs = self.get_data_by_names(x_names)
-        y = self.get_data_by_name(y_name)
-        _subsample = self.get_subsample(subsample)
-        xs = xs[_subsample]
-        y = y[_subsample]
-
-        if is_bool(y):
-            y = y.astype(int)
+        xs, y = self._prepare_ML_data(x_names, y_name, subsample,
+                                      bad_treatment)
 
         if problem_type is None:
             print('problem_type is not specified, try to guess:')
@@ -1134,14 +1124,6 @@ class Dataset(BasicDataset):
             else:
                 raise ValueError(
                     'Can not guess problem_type, please specify problem_type')
-
-        if bad_treatment == 'drop':
-            is_bad = flag_bad(xs).any(axis=1) | flag_bad(y)
-            xs = xs[~is_bad]
-            y = y[~is_bad]
-        else:
-            raise NotImplementedError(
-                'bad_treatment other than drop is not implemented')
 
         if auto_balance:
             if problem_type != 'classification':
@@ -1171,23 +1153,8 @@ class Dataset(BasicDataset):
                            plot=False,
                            return_more=False):
 
-        x_names = string_to_list(x_names)
-        xs = self.get_data_by_names(x_names)
-        y = self.get_data_by_name(y_name)
-        _subsample = self.get_subsample(subsample)
-        xs = xs[_subsample]
-        y = y[_subsample]
-
-        if is_bool(y):
-            y = y.astype(int)
-
-        if bad_treatment == 'drop':
-            is_bad = flag_bad(xs).any(axis=1) | flag_bad(y)
-            xs = xs[~is_bad]
-            y = y[~is_bad]
-        else:
-            raise NotImplementedError(
-                'bad_treatment other than drop is not implemented')
+        xs, y = self._prepare_ML_data(x_names, y_name, subsample,
+                                      bad_treatment)
 
         _, lda = get_LDA_projection(xs,
                                     y,
@@ -1207,6 +1174,68 @@ class Dataset(BasicDataset):
             return axis_label_list, lda_project, lda
         else:
             return axis_label_list, lda_project
+
+    def search_combination_OLS(self,
+                               x_names,
+                               y_name,
+                               n_components=2,
+                               subsample=None,
+                               bad_treatment='drop',
+                               string_format='.2f',
+                               plot=False,
+                               is_sigma_clip=False,
+                               sigma=3,
+                               return_more=False):
+
+        xs, y = self._prepare_ML_data(x_names, y_name, subsample,
+                                      bad_treatment)
+        best_combination, best_results, results, rank, mse_resid = search_combination_OLS(
+            xs,
+            y,
+            n_components=n_components,
+            return_more=True,
+            is_sigma_clip=is_sigma_clip,
+            sigma=sigma)
+
+        if plot:
+            raise NotImplementedError('plot is not implemented')
+
+        strings = {}
+        if return_more:
+
+            for combination in results:
+                this_name_list = [''] + [x_names[i] for i in combination]
+                strings[combination] = self.get_linear_combination_string(
+                    results[combination][0].params,
+                    this_name_list,
+                    string_format=string_format)
+            return strings, best_combination, best_results, results, rank, mse_resid
+        else:
+            this_name_list = [''] + [x_names[i] for i in best_combination]
+            best_string = self.get_linear_combination_string(
+                best_results[0].params,
+                this_name_list,
+                string_format=string_format)
+            return best_string, best_combination, best_results
+
+    def _prepare_ML_data(self, x_names, y_name, subsample, bad_treatment):
+        x_names = string_to_list(x_names)
+        xs = self.get_data_by_names(x_names)
+        y = self.get_data_by_name(y_name)
+        _subsample = self.get_subsample(subsample)
+        xs = xs[_subsample]
+        y = y[_subsample]
+
+        if is_bool(y):
+            y = y.astype(int)
+
+        if bad_treatment == 'drop':
+            xs, y = remove_bad([xs, y])
+        else:
+            raise NotImplementedError(
+                'bad_treatment other than drop is not implemented')
+
+        return xs, y
 
 
 def auto_subplots(n1, n2=None, figshape=None, figsize=None, dpi=400):

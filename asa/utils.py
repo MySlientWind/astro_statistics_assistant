@@ -39,22 +39,18 @@ def is_float(x):
     '''
     check if x is kind of float, such as built-in float, np.float32, np.float64, np.ndarray of float, list of float...
     '''
-    return (
-        isinstance(x, (float, np.float32, np.float64))
-        or (isinstance(x, np.ndarray) and x.dtype.kind == 'f')
-        or (isinstance(x, list) and all(isinstance(y, float) for y in x))
-    )
+    return (isinstance(x, (float, np.float32, np.float64))
+            or (isinstance(x, np.ndarray) and x.dtype.kind == 'f')
+            or (isinstance(x, list) and all(isinstance(y, float) for y in x)))
 
 
 def is_int(x):
     '''
     check if x is kind of int, such as built-in int, np.int32, np.int64, np.ndarray of int, list of int...
     '''
-    return (
-        isinstance(x, (int, np.int32, np.int64))
-        or (isinstance(x, np.ndarray) and x.dtype.kind == 'i')
-        or (isinstance(x, list) and all(isinstance(y, int) for y in x))
-    )
+    return (isinstance(x, (int, np.int32, np.int64))
+            or (isinstance(x, np.ndarray) and x.dtype.kind == 'i')
+            or (isinstance(x, list) and all(isinstance(y, int) for y in x)))
 
 
 def is_bool(x):
@@ -98,6 +94,7 @@ def auto_set_range(x, y, _range, auto_p):
             np.percentile(y, auto_p[1][1])]]
     return _range
 
+
 def get_kwargs_each(fixed_kwargs, changed_kwargs, shape):
     """
     Get a list of kwargs for each element in a 2D array
@@ -118,14 +115,27 @@ def get_kwargs_each(fixed_kwargs, changed_kwargs, shape):
                 kwargs_each[-1][-1][key] = value[i][j]
     return kwargs_each
 
-def flat_and_remove_bad(xs):
-    bad = np.zeros_like(xs[0].flatten(), dtype=bool)
+
+def remove_bad(xs):
+    if xs[0].ndim == 1:
+        n_sample = len(xs[0])
+    else:
+        n_sample = xs[0].shape[0]
+    bad = np.zeros(n_sample, dtype=bool)
     for x in xs:
-        bad |= flag_bad(x.flatten())
-    return [x.flatten()[~bad] for x in xs]
+        if x.ndim == 1:
+            bad |= flag_bad(x)
+        else:
+            bad |= flag_bad(x).any(axis=1)
+    return [x[~bad] for x in xs]
+
 
 def all_asarray(xs):
     return [np.asarray(x) for x in xs]
 
+
 def is_empty(x):
     return len(x) == 0
+
+def get_rank(x):
+    return np.argsort(np.argsort(x))

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from asa.utils import list_reshape, is_float, is_int, is_bool, balance_class
+from asa.utils import list_reshape, is_float, is_int, is_bool, balance_class, remove_bad
 
 
 class TestUtils:
@@ -104,8 +104,29 @@ class TestUtils:
 
         _, counts = np.unique(y, return_counts=True)
 
-        assert x_balanced.shape == (3*counts.min(), 10)
-        assert y_balanced.shape == (3*counts.min(), )
+        assert x_balanced.shape == (3 * counts.min(), 10)
+        assert y_balanced.shape == (3 * counts.min(), )
 
         for i in range(3):
             assert (y_balanced == i).sum() == (y_balanced == 0).sum()
+
+    def test_remove_bad(self):
+        x = np.random.normal(size=100)
+        x[10:14] = np.nan
+        assert np.array_equal(remove_bad([x])[0], x[~np.isnan(x)])
+
+        x = np.random.normal(size=100)
+        x[10:14] = np.inf
+        assert np.array_equal(remove_bad([x])[0], x[~np.isinf(x)])
+
+        x = np.random.normal(size=100)
+        x[10:14] = np.nan
+        y = np.random.normal(size=100)
+        y[80:84] = np.inf
+        _x, _y = remove_bad([x, y])
+        assert np.array_equal(_x, x[~np.isnan(x) & ~np.isinf(y)])
+        assert np.array_equal(_y, y[~np.isnan(x) & ~np.isinf(y)])
+
+        X = np.random.normal(size=(100, 10))
+        X[10:14, 0] = np.nan
+        assert np.array_equal(remove_bad([X])[0], X[~np.isnan(X[:, 0])])
