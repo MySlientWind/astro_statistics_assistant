@@ -8,7 +8,9 @@ from .utils import remove_bad, get_rank
 def search_combination_OLS(X,
                            y,
                            n_components=2,
+                           allowe_small_n=False,
                            return_more=False,
+                           metric='mse_resid',
                            is_sigma_clip=False,
                            sigma=3.0):
     """Search for the best combination of features using OLS.
@@ -18,13 +20,34 @@ def search_combination_OLS(X,
         y (np.ndarray): The labels to use for training.
         n_components (int, optional): The number of features to use.
             Defaults to 2.
+        allowe_small_n (bool, optional): Whether to allow the number of
+            features to be less than n_components. Defaults to False.
         return_more (bool, optional): Whether to return all the results. Defaults
             to False.
+        metric (str, optional): The metric to use for selecting the best
+            combination. Defaults to 'mse_resid'.
+        is_sigma_clip (bool, optional): Whether to use sigma clipping to
+            remove outliers. Defaults to False.
+        sigma (float, optional): The sigma value to use for sigma clipping.
+            Defaults to 3.0.
 
     Returns:
         dict: The best combination of features and the corresponding OLS
             results.
     """
+    def get_metric(results, metric='mse_resid'):
+        if metric == 'mse_resid':
+            return results.mse_resid
+        elif metric == 'r2':
+            return results.rsquared
+        elif metric == 'bic':
+            return results.bic
+
+    if metric in ['mse_resid', 'bic']:
+        rank_scaler = 1
+    elif metric == 'r2':
+        rank_scaler = -1
+
     X, y = remove_bad([X, y])
 
     if n_components > X.shape[1]:
@@ -33,8 +56,16 @@ def search_combination_OLS(X,
 
     results = {}
 
-    for combination in itertools.combinations(range(X.shape[1]),
-                                              n_components):
+    if allowe_small_n:
+        all_combinations = itertools.chain(*[
+            itertools.combinations(range(X.shape[1]), n_components - i)
+            for i in range(n_components)
+        ])
+    else:
+        all_combinations = itertools.combinations(range(X.shape[1]),
+                                                  n_components)
+
+    for combination in all_combinations:
         if is_sigma_clip:
             _, _func = get_OLS_nd(X[:, combination], y)
             _diff = _func(X[:, combination]) - y
@@ -43,13 +74,15 @@ def search_combination_OLS(X,
         else:
             results[combination] = get_OLS_nd(X[:, combination], y)
 
-    mse_resid = np.array(
-        [results[combination][0].mse_resid for combination in results])
-    rank = get_rank(mse_resid)
-    best_combination = list(results.keys())[np.argmin(mse_resid)]
+    res_metric = np.array([
+        get_metric(results[combination][0], metric=metric)
+        for combination in results
+    ])
+    rank = get_rank(rank_scaler * res_metric)
+    best_combination = list(results.keys())[np.argmin(rank)]
     best_results = results[best_combination]
 
     if return_more:
-        return best_combination, best_results, results, rank, mse_resid
+        return best_combination, best_results, results, rank, res_metric
     else:
         return best_combination, best_results

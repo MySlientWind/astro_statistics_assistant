@@ -1179,23 +1179,27 @@ class Dataset(BasicDataset):
                                x_names,
                                y_name,
                                n_components=2,
+                               allowe_small_n=False,
                                subsample=None,
                                bad_treatment='drop',
                                string_format='.2f',
                                plot=False,
+                               metric='mse_resid',
                                is_sigma_clip=False,
                                sigma=3,
                                return_more=False):
 
         xs, y = self._prepare_ML_data(x_names, y_name, subsample,
                                       bad_treatment)
-        best_combination, best_results, results, rank, mse_resid = search_combination_OLS(
+        best_combination, best_results, results, rank, res_metric = search_combination_OLS(
             xs,
             y,
             n_components=n_components,
             return_more=True,
             is_sigma_clip=is_sigma_clip,
-            sigma=sigma)
+            sigma=sigma,
+            metric=metric,
+            allowe_small_n=allowe_small_n)
 
         if plot:
             raise NotImplementedError('plot is not implemented')
@@ -1209,7 +1213,7 @@ class Dataset(BasicDataset):
                     results[combination][0].params,
                     this_name_list,
                     string_format=string_format)
-            return strings, best_combination, best_results, results, rank, mse_resid
+            return strings, best_combination, best_results, results, rank, res_metric
         else:
             this_name_list = [''] + [x_names[i] for i in best_combination]
             best_string = self.get_linear_combination_string(
