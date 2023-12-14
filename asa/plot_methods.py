@@ -405,6 +405,7 @@ def plot_heatmap(x,
         warnings.warn("The x, y or z are empty after remove bad data skip the plot")
         return 
 
+    # TODO: z range
     range = auto_set_range(x, y, range, auto_p)
 
     X, Y, Z, x_edges, y_edges = bin_2d(x,
