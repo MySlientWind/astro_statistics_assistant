@@ -318,3 +318,18 @@ class TestDataset:
         assert not dataset.is_legal_name('t_snr')
         assert not dataset.is_legal_name('log10@t')
         assert not dataset.is_legal_name('log10@t_err')
+
+    def test_random_subsample(self):
+        dataset, x, y, z = self.gen_dataset()
+        assert len(dataset.random_subsample(5)) == 5
+        assert dataset.random_subsample(5, as_bool=True).sum() == 5
+
+
+        assert len(dataset.random_subsample(0.5)) == 5
+        
+
+        for _ in range(10):
+            subsample = dataset.random_subsample(3, input_subsample='x<5')
+            assert len(subsample) == 3
+            assert np.all(x[subsample] < 5)
+

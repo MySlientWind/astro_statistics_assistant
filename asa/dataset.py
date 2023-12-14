@@ -398,11 +398,15 @@ class BasicDataset:
         self, subsample: Union[None, str, np.ndarray]
     ) -> np.ndarray:  # sourcery skip: lift-return-into-if
         _subsample: np.ndarray
+        # TODO: 0, 1 to bool
 
         if subsample is None:
             _subsample = np.ones(self.data.shape[0]).astype(bool)
         elif isinstance(subsample, str):
             _subsample = self.string_to_subsample(subsample)
+        # if only include 0 or 1, convert to bool
+        # elif np.unique(subsample).tolist() in [[0], [1], [0, 1], [1, 0]]:
+        #     _subsample = subsample.astype(bool)
         else:
             _subsample = subsample
 
@@ -427,8 +431,24 @@ class BasicDataset:
             _subsample = self[:, subsample_idx].astype(bool).to_numpy()
         return _subsample
 
-    def random_subsample(self, N, as_bool=False) -> np.ndarray:
-        subsample = np.random.choice(self.data.shape[0], N, replace=False)
+    def random_subsample(self,
+                         N,
+                         as_bool=False,
+                         input_subsample=None) -> np.ndarray:
+        '''
+        N: int or float
+            If > 1, the number of samples to be selected
+            If < 1, the fraction of samples to be selected
+        '''
+
+        if N < 1:
+            N = int(N * self.data.shape[0])
+
+        input_subsample = self.get_subsample(input_subsample)
+
+        subsample = np.random.choice(input_subsample.sum(), N, replace=False)
+        subsample = input_subsample.nonzero()[0][subsample]
+
         if as_bool:
             subsample = self.index_to_bool_subsample(subsample)
         return subsample
@@ -1097,11 +1117,54 @@ class Dataset(BasicDataset):
                 subplots_kwargs=subplots_kwargs,
                 **kwargs)
 
-    # TODO: support under-sampling
+    def get_RF_importance_bootstrap(self,
+                                    x_names,
+                                    y_name,
+                                    problem_type=None,
+                                    max_sample=None,
+                                    subsample=None,
+                                    bad_treatment='drop',
+                                    auto_balance=False,
+                                    check_res=True,
+                                    N_bootstrap=10,
+                                    f_bootstrap=0.8,
+                                    **kwargs):
+        '''
+        N_bootstrap: int
+            The times of bootstrap
+        f_bootstrap: float or int
+            If < 1, the fraction of samples used in each bootstrap
+            If int, the fraction of samples used in each bootstrap
+        '''
+
+        importance_list = []
+        for i in range(N_bootstrap):
+            # print(f'Bootstrap {i+1}/{N_bs}')
+
+            this_subsample = self.random_subsample(f_bootstrap,
+                                                   input_subsample=subsample,
+                                                   as_bool=True)
+
+            importance = self.get_RF_importance(x_names,
+                                                y_name,
+                                                problem_type=problem_type,
+                                                max_sample=max_sample,
+                                                subsample=this_subsample,
+                                                bad_treatment=bad_treatment,
+                                                auto_balance=auto_balance,
+                                                check_res=check_res,
+                                                return_more=False,
+                                                **kwargs)
+            importance_list.append(importance)
+
+        importance_list = np.array(importance_list)
+        return importance_list
+
     def get_RF_importance(self,
                           x_names,
                           y_name,
                           problem_type=None,
+                          max_sample=None,
                           subsample=None,
                           bad_treatment='drop',
                           auto_balance=False,
@@ -1129,6 +1192,17 @@ class Dataset(BasicDataset):
             if problem_type != 'classification':
                 raise ValueError('auto_balance only works for classification')
             xs, y = balance_class(xs, y)
+
+        if not max_sample is None:
+            if xs.shape[0] > max_sample:
+                print(
+                    f'Randomly select {max_sample} samples from {xs.shape[0]} samples'
+                )
+                subsample = np.random.choice(xs.shape[0],
+                                             max_sample,
+                                             replace=False)
+                xs = xs[subsample]
+                y = y[subsample]
 
         feature_importance, rf, X_train, X_test, y_train, y_test = get_RF_importance(
             xs, y, problem_type, return_more=True, **kwargs)
