@@ -3,6 +3,7 @@ https://en.wikipedia.org/wiki/Propagation_of_uncertainty
 '''
 
 # TODO: test cover all
+# TODO: sqrt
 
 import numpy as np
 

@@ -1,5 +1,6 @@
 import itertools
 import re
+import warnings
 from typing import Union, List, Callable, Any, Dict
 import numpy as np
 import pandas as pd
@@ -1298,6 +1299,8 @@ class Dataset(BasicDataset):
 
     def _prepare_ML_data(self, x_names, y_name, subsample, bad_treatment):
         x_names = string_to_list(x_names)
+        if y_name in x_names:
+            warnings.warn(f'y_name: {y_name} is in x_names: {x_names}')
         xs = self.get_data_by_names(x_names)
         y = self.get_data_by_name(y_name)
         _subsample = self.get_subsample(subsample)
