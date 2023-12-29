@@ -590,8 +590,10 @@ class BasicDataset:
     def get_linear_combination_string(self,
                                       coefficients,
                                       names,
-                                      string_format='.2f'):
-        lc_str = f'{coefficients[0]:{string_format}} {self.get_label_by_name(names[0])}'
+                                      string_format='.2f',
+                                      with_unit=True) -> str:
+        # TODO: constant term
+        lc_str = f'{coefficients[0]:{string_format}} {self.get_label_by_name(names[0], with_unit=with_unit)}'
         for this_c, this_n in zip(coefficients[1:], names[1:]):
             sign = '+' if this_c > 0 else '-' if this_c < 0 else ''
             lc_str += f' {sign} {np.abs(this_c):{string_format}} {self.get_label_by_name(this_n)}'
@@ -1127,6 +1129,7 @@ class Dataset(BasicDataset):
                                     bad_treatment='drop',
                                     auto_balance=False,
                                     check_res=True,
+                                    return_more=False,
                                     N_bootstrap=10,
                                     f_bootstrap=0.8,
                                     **kwargs):
@@ -1138,7 +1141,10 @@ class Dataset(BasicDataset):
             If int, the fraction of samples used in each bootstrap
         '''
 
+        # TODO: return more
+
         importance_list = []
+        test_score_list = []
         for i in range(N_bootstrap):
             # print(f'Bootstrap {i+1}/{N_bs}')
 
@@ -1146,20 +1152,23 @@ class Dataset(BasicDataset):
                                                    input_subsample=subsample,
                                                    as_bool=True)
 
-            importance = self.get_RF_importance(x_names,
-                                                y_name,
-                                                problem_type=problem_type,
-                                                max_sample=max_sample,
-                                                subsample=this_subsample,
-                                                bad_treatment=bad_treatment,
-                                                auto_balance=auto_balance,
-                                                check_res=check_res,
-                                                return_more=False,
-                                                **kwargs)
+            importance, test_score = self.get_RF_importance(
+                x_names,
+                y_name,
+                problem_type=problem_type,
+                max_sample=max_sample,
+                subsample=this_subsample,
+                bad_treatment=bad_treatment,
+                auto_balance=auto_balance,
+                check_res=check_res,
+                return_more=False,
+                **kwargs)
             importance_list.append(importance)
+            test_score_list.append(test_score)
 
         importance_list = np.array(importance_list)
-        return importance_list
+        test_score_list = np.array(test_score_list)
+        return importance_list, test_score_list
 
     def get_RF_importance(self,
                           x_names,
@@ -1173,6 +1182,32 @@ class Dataset(BasicDataset):
                           return_more=False,
                           **kwargs):
         # TODO: auto tune hyperparameters
+        '''
+        problem_type: str or None
+            'classification' or 'regression'
+            If None, try to guess
+
+        max_sample: int or None
+            The maximum number of samples used in the random forest
+            If None, unlimited
+
+        subsample: str or np.ndarray or None
+            If None, use all samples
+        
+        bad_treatment: str
+            'drop' or 'ignore'
+        
+        auto_balance: bool
+            If True, balance the class by random undersampling
+            It only works for classification
+        
+        check_res: bool
+            If True, print the train/test score
+        
+        return_more: bool
+            If True, return more results
+            IF False, only return feature_importance and score_test
+        '''
 
         xs, y = self._prepare_ML_data(x_names, y_name, subsample,
                                       bad_treatment)
@@ -1208,15 +1243,17 @@ class Dataset(BasicDataset):
         feature_importance, rf, X_train, X_test, y_train, y_test = get_RF_importance(
             xs, y, problem_type, return_more=True, **kwargs)
 
+        score_train = rf.score(X_train, y_train)
+        score_test = rf.score(X_test, y_test)
         if check_res:
             print('Check the result:')
-            print('  Train score: ', rf.score(X_train, y_train))
-            print('  Test score: ', rf.score(X_test, y_test))
+            print('  Train score: ', score_train)
+            print('  Test score: ', score_test)
 
         if return_more:
-            return feature_importance, rf, X_train, X_test, y_train, y_test
+            return feature_importance, score_test, score_train, rf, X_train, X_test, y_train, y_test
         else:
-            return feature_importance
+            return feature_importance, score_test
 
     def get_LDA_projection(self,
                            x_names,
