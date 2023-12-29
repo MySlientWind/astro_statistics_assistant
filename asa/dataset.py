@@ -589,8 +589,10 @@ class BasicDataset:
     def get_linear_combination_string(self,
                                       coefficients,
                                       names,
-                                      string_format='.2f'):
-        lc_str = f'{coefficients[0]:{string_format}} {self.get_label_by_name(names[0])}'
+                                      string_format='.2f',
+                                      with_unit=True) -> str:
+        # TODO: constant term
+        lc_str = f'{coefficients[0]:{string_format}} {self.get_label_by_name(names[0], with_unit=with_unit)}'
         for this_c, this_n in zip(coefficients[1:], names[1:]):
             sign = '+' if this_c > 0 else '-' if this_c < 0 else ''
             lc_str += f' {sign} {np.abs(this_c):{string_format}} {self.get_label_by_name(this_n)}'
