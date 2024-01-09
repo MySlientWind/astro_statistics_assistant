@@ -4,6 +4,7 @@ from astropy.stats import sigma_clip
 from .linear_model.linear_model import get_OLS_nd
 from .utils import remove_bad, get_rank
 from .sklearn_tools.auto_tune import get_RF_CVS
+from .correlation_methods import get_RF_importance
 
 
 def search_combination_OLS(X,
@@ -36,6 +37,7 @@ def search_combination_OLS(X,
         dict: The best combination of features and the corresponding OLS
             results.
     """
+
     def get_metric(results, metric='mse_resid'):
         if metric == 'mse_resid':
             return results.mse_resid
@@ -253,6 +255,7 @@ def search_combination_RF_reg(X,
 
 
 class CVBest:
+
     def __init__(self, cvs):
         self.best_score_ = cvs.best_score_
         self.best_estimator_ = cvs.best_estimator_

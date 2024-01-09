@@ -1151,7 +1151,7 @@ class Dataset(BasicDataset):
 
         importance_list = []
         test_score_list = []
-        for i in range(N_bootstrap):
+        for _ in range(N_bootstrap):
             # print(f'Bootstrap {i+1}/{N_bs}')
 
             this_subsample = self.random_subsample(f_bootstrap,
@@ -1188,6 +1188,7 @@ class Dataset(BasicDataset):
                           return_more=False,
                           **kwargs):
         # TODO: auto tune hyperparameters
+        # TODO: auto get label name
         '''
         problem_type: str or None
             'classification' or 'regression'

@@ -21,12 +21,15 @@ from .utils import remove_bad
 
 USE_EX = True
 
+
 def get_RF_importance(x,
                       y,
                       problem_type,
                       importance_type='gini',
                       test_size=0.2,
                       return_more=False,
+                      add_random=False,
+                      n_random=1,
                       RF_kwargs=None):
     """Get the importance of each feature in a dataset using a random forest.
 
@@ -44,6 +47,12 @@ def get_RF_importance(x,
 
     if RF_kwargs is None:
         RF_kwargs = {}
+    
+    if add_random:
+        x_rand = np.zeros((x.shape[0], n_random))
+        for i in range(n_random):
+            x_rand[:, i] = np.random.permutation(y)
+        x = np.hstack([x, x_rand])
 
     X_train, X_test, y_train, y_test = train_test_split(x,
                                                         y,
@@ -80,7 +89,6 @@ def get_RF_importance(x,
         return feature_importance, score_test, score_train, rf, X_train, X_test, y_train, y_test
     else:
         return feature_importance, score_test
-
 
 def get_correlation_coefficients(x, y):
     # TODO: more correlation coefficients
