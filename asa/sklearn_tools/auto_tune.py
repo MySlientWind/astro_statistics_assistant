@@ -4,7 +4,6 @@ try:
     EX_AVAILABLE = True
 except ImportError:
     EX_AVAILABLE = False
-    pass
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 

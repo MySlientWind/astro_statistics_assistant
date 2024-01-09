@@ -1237,11 +1237,9 @@ class Dataset(BasicDataset):
                 xs = xs[subsample]
                 y = y[subsample]
 
-        feature_importance, rf, X_train, X_test, y_train, y_test = get_RF_importance(
+        feature_importance, score_test, score_train, rf, X_train, X_test, y_train, y_test = get_RF_importance(
             xs, y, problem_type, return_more=True, **kwargs)
 
-        score_train = rf.score(X_train, y_train)
-        score_test = rf.score(X_test, y_test)
         if check_res:
             print('Check the result:')
             print('  Train score: ', score_train)

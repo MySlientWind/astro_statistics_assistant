@@ -1,5 +1,13 @@
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
+
+try:
+    from sklearnex.ensemble import RandomForestClassifier as RandomForestClassifier_ex
+    from sklearnex.ensemble import RandomForestRegressor as RandomForestRegressor_ex
+    EX_AVAILABLE = True
+except ImportError:
+    EX_AVAILABLE = False
+
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from scipy.special import digamma
 from math import log
@@ -11,6 +19,7 @@ from scipy.optimize import differential_evolution
 
 from .utils import remove_bad
 
+USE_EX = True
 
 def get_RF_importance(x,
                       y,
@@ -41,9 +50,15 @@ def get_RF_importance(x,
                                                         test_size=test_size)
 
     if problem_type == 'classification':
-        rf = RandomForestClassifier(**RF_kwargs)
+        if EX_AVAILABLE and USE_EX:
+            rf = RandomForestClassifier_ex(**RF_kwargs)
+        else:
+            rf = RandomForestClassifier(**RF_kwargs)
     elif problem_type == 'regression':
-        rf = RandomForestRegressor(**RF_kwargs)
+        if EX_AVAILABLE and USE_EX:
+            rf = RandomForestRegressor_ex(**RF_kwargs)
+        else:
+            rf = RandomForestRegressor(**RF_kwargs)
     else:
         raise ValueError('problem_type must be either classification or '
                          'regression.')
@@ -58,10 +73,13 @@ def get_RF_importance(x,
                                                     y_test,
                                                     n_repeats=10)
 
+    score_train = rf.score(X_train, y_train)
+    score_test = rf.score(X_test, y_test)
+
     if return_more:
-        return feature_importance, rf, X_train, X_test, y_train, y_test
+        return feature_importance, score_test, score_train, rf, X_train, X_test, y_train, y_test
     else:
-        return feature_importance
+        return feature_importance, score_test
 
 
 def get_correlation_coefficients(x, y):
@@ -133,7 +151,9 @@ def get_MI(x,
         x_scaler = res.x[:n_x]
         y_scaler = res.x[n_x:]
 
-        return x_scaler, y_scaler, kraskov_mi(x_scaler * _x, y_scaler * _y, k=k)
+        return x_scaler, y_scaler, kraskov_mi(x_scaler * _x,
+                                              y_scaler * _y,
+                                              k=k)
 
     else:
         return kraskov_mi(_x, _y, k=k)
