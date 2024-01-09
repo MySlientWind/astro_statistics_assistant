@@ -89,6 +89,7 @@ def search_combination_OLS(X,
         return best_combination, best_results
 
 
+# TODO: docstring
 def search_combination_RF_cls(X,
                               y,
                               n_components=2,
@@ -121,9 +122,11 @@ def search_combination_RF_cls(X,
     if CVS_kwargs is None:
         CVS_kwargs = {}
 
-    elif metric in ['balanced_accuracy', 'accuracy']:
+    if metric in ['balanced_accuracy', 'accuracy']:
         CVS_kwargs['scoring'] = metric
         rank_scaler = -1
+    else:
+        raise ValueError('Unknown metric')
 
     X, y = remove_bad([X, y])
 
@@ -143,14 +146,14 @@ def search_combination_RF_cls(X,
                                                   n_components)
 
     for combination in all_combinations:
-        results[combination] = get_RF_CVS(
-            X[:, combination],
-            y,
-            'classification',
-            CVS_method=CVS_method,
-            param_grid=param_grid,
-            param_distributions=param_distributions,
-            CVS_kwargs=CVS_kwargs)
+        results[combination] = CVBest(
+            get_RF_CVS(X[:, combination],
+                       y,
+                       'classification',
+                       CVS_method=CVS_method,
+                       param_grid=param_grid,
+                       param_distributions=param_distributions,
+                       CVS_kwargs=CVS_kwargs))
 
     res_metric = np.array([
         -rank_scaler * results[combination].best_score_
@@ -166,6 +169,7 @@ def search_combination_RF_cls(X,
         return best_combination, best_results
 
 
+# TODO: docstring
 def search_combination_RF_reg(X,
                               y,
                               n_components=2,
@@ -201,10 +205,11 @@ def search_combination_RF_reg(X,
     if metric == 'mse_resid':
         CVS_kwargs['scoring'] = 'neg_mean_squared_error'
         rank_scaler = 1
-
     elif metric == 'r2':
         CVS_kwargs['scoring'] = 'r2'
         rank_scaler = -1
+    else:
+        raise ValueError('Unknown metric')
 
     X, y = remove_bad([X, y])
 
@@ -224,14 +229,14 @@ def search_combination_RF_reg(X,
                                                   n_components)
 
     for combination in all_combinations:
-        results[combination] = get_RF_CVS(
-            X[:, combination],
-            y,
-            'regression',
-            CVS_method=CVS_method,
-            param_grid=param_grid,
-            param_distributions=param_distributions,
-            CVS_kwargs=CVS_kwargs)
+        results[combination] = CVBest(
+            get_RF_CVS(X[:, combination],
+                       y,
+                       'regression',
+                       CVS_method=CVS_method,
+                       param_grid=param_grid,
+                       param_distributions=param_distributions,
+                       CVS_kwargs=CVS_kwargs))
 
     res_metric = np.array([
         -rank_scaler * results[combination].best_score_
@@ -245,3 +250,12 @@ def search_combination_RF_reg(X,
         return best_combination, best_results, results, rank, res_metric
     else:
         return best_combination, best_results
+
+
+class CVBest:
+    def __init__(self, cvs):
+        self.best_score_ = cvs.best_score_
+        self.best_estimator_ = cvs.best_estimator_
+
+    def __repr__(self):
+        return f'CVBest(\n    best_score={self.best_score_}, \n    best_estimator={self.best_estimator_}\n)'

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from .plot_methods import plot_contour, plot_trend, plot_corner, plot_scatter, plot_heatmap, plot_sample_to_point
 from .correlation_methods import get_RF_importance
 from .projection_methods import get_LDA_projection
-from .feature_selection_methods import search_combination_OLS
+from .feature_selection_methods import search_combination_OLS, search_combination_RF_cls, search_combination_RF_reg
 from .utils import string_to_list, is_string_or_list_of_string, list_reshape, flag_bad, is_int, is_bool, is_float, balance_class, remove_bad
 from .binning_methods import binned_statistic_robust, binned_statistic_2d_robust
 from . import uncertainty as unc
@@ -598,6 +598,12 @@ class BasicDataset:
             sign = '+' if this_c > 0 else '-' if this_c < 0 else ''
             lc_str += f' {sign} {np.abs(this_c):{string_format}} {self.get_label_by_name(this_n)}'
         return lc_str
+
+    def get_func_combination_string(self,
+                                    names,
+                                    func_name,
+                                    with_unit=True) -> str:
+        return f'{func_name}({", ".join([self.get_label_by_name(name, with_unit=with_unit) for name in names])})'
 
 
 # TODO: split PlotDataset and Dataset
@@ -1213,16 +1219,7 @@ class Dataset(BasicDataset):
                                       bad_treatment)
 
         if problem_type is None:
-            print('problem_type is not specified, try to guess:')
-            print('  If y is float, problem_type is regression')
-            print('  If y is int or bool, problem_type is classification')
-            if is_float(y):
-                problem_type = 'regression'
-            elif is_int(y):
-                problem_type = 'classification'
-            else:
-                raise ValueError(
-                    'Can not guess problem_type, please specify problem_type')
+            problem_type = guess_problem_type(y)
 
         if auto_balance:
             if problem_type != 'classification':
@@ -1334,6 +1331,92 @@ class Dataset(BasicDataset):
                 string_format=string_format)
             return best_string, best_combination, best_results
 
+    def search_combination_RF(self,
+                              x_names,
+                              y_name,
+                              n_components=2,
+                              problem_type=None,
+                              allowe_small_n=False,
+                              subsample=None,
+                              bad_treatment='drop',
+                              auto_balance=False,
+                              max_sample=None,
+                              plot=False,
+                              metric=None,
+                              return_more=False,
+                              CVS_method='grid',
+                              param_grid='basic',
+                              param_distributions=None,
+                              CVS_kwargs=None):
+
+        xs, y = self._prepare_ML_data(x_names, y_name, subsample,
+                                      bad_treatment)
+
+        if problem_type is None:
+            problem_type = guess_problem_type(y)
+
+        if auto_balance:
+            if problem_type != 'classification':
+                raise ValueError('auto_balance only works for classification')
+            xs, y = balance_class(xs, y)
+
+        if not max_sample is None:
+            if xs.shape[0] > max_sample:
+                print(
+                    f'Randomly select {max_sample} samples from {xs.shape[0]} samples'
+                )
+                subsample = np.random.choice(xs.shape[0],
+                                             max_sample,
+                                             replace=False)
+                xs = xs[subsample]
+                y = y[subsample]
+
+        if problem_type == 'classification':
+            if metric is None:
+                metric = 'balanced_accuracy'
+            best_combination, best_results, results, rank, res_metric = search_combination_RF_cls(
+                xs,
+                y,
+                n_components=n_components,
+                allowe_small_n=allowe_small_n,
+                return_more=True,
+                metric=metric,
+                CVS_method=CVS_method,
+                param_grid=param_grid,
+                param_distributions=param_distributions,
+                CVS_kwargs=CVS_kwargs)
+        elif problem_type == 'regression':
+            if metric is None:
+                metric = 'mse_resid'
+            best_combination, best_results, results, rank, res_metric = search_combination_RF_reg(
+                xs,
+                y,
+                n_components=n_components,
+                allowe_small_n=allowe_small_n,
+                return_more=True,
+                metric=metric,
+                CVS_method=CVS_method,
+                param_grid=param_grid,
+                param_distributions=param_distributions,
+                CVS_kwargs=CVS_kwargs)
+
+        if plot:
+            raise NotImplementedError('plot is not implemented')
+
+        strings = {}
+        if return_more:
+            for combination in results:
+                this_name_list = [x_names[i] for i in combination]
+                strings[combination] = self.get_func_combination_string(
+                    this_name_list, 'RF', with_unit=False)
+            return strings, best_combination, best_results, results, rank, res_metric
+        else:
+            this_name_list = [x_names[i] for i in best_combination]
+            best_string = self.get_func_combination_string(this_name_list,
+                                                           'RF',
+                                                           with_unit=False)
+            return best_string, best_combination, best_results
+
     def _prepare_ML_data(self, x_names, y_name, subsample, bad_treatment):
         x_names = string_to_list(x_names)
         if y_name in x_names:
@@ -1393,3 +1476,16 @@ def parse_and_or(string):
 
 def is_inequality(string):
     return re.search(r'(<=|>=|<|>)', string) is not None
+
+
+def guess_problem_type(y):
+    print('problem_type is not specified, try to guess:')
+    print('  If y is float, problem_type is regression')
+    print('  If y is int or bool, problem_type is classification')
+    if is_float(y):
+        return 'regression'
+    elif is_int(y):
+        return 'classification'
+    else:
+        raise ValueError(
+            'Can not guess problem_type, please specify problem_type')
