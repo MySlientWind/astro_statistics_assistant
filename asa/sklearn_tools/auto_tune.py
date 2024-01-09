@@ -1,6 +1,14 @@
+try:
+    from sklearnex.ensemble import RandomForestClassifier as RandomForestClassifier_ex
+    from sklearnex.ensemble import RandomForestRegressor as RandomForestRegressor_ex
+    EX_AVAILABLE = True
+except ImportError:
+    EX_AVAILABLE = False
+    pass
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
+USE_EX = True
 
 def get_RF_CVS(x,
                y,
@@ -14,9 +22,15 @@ def get_RF_CVS(x,
         CVS_kwargs = {}
 
     if problem_type == 'classification':
-        rf = RandomForestClassifier()
+        if EX_AVAILABLE and USE_EX:
+            rf = RandomForestClassifier_ex()
+        else:
+            rf = RandomForestClassifier()
     elif problem_type == 'regression':
-        rf = RandomForestRegressor()
+        if EX_AVAILABLE and USE_EX:
+            rf = RandomForestRegressor_ex()
+        else:
+            rf = RandomForestRegressor()
 
     # predined param_grid
     if param_grid == 'basic':
