@@ -1346,6 +1346,7 @@ class Dataset(BasicDataset):
                               CVS_method='grid',
                               param_grid='basic',
                               param_distributions=None,
+                              drop_estimator=False,
                               CVS_kwargs=None):
 
         xs, y = self._prepare_ML_data(x_names, y_name, subsample,
@@ -1383,6 +1384,7 @@ class Dataset(BasicDataset):
                 CVS_method=CVS_method,
                 param_grid=param_grid,
                 param_distributions=param_distributions,
+                drop_estimator=drop_estimator,
                 CVS_kwargs=CVS_kwargs)
         elif problem_type == 'regression':
             if metric is None:
@@ -1397,6 +1399,7 @@ class Dataset(BasicDataset):
                 CVS_method=CVS_method,
                 param_grid=param_grid,
                 param_distributions=param_distributions,
+                drop_estimator=drop_estimator,
                 CVS_kwargs=CVS_kwargs)
 
         if plot:

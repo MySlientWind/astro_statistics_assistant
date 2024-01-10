@@ -101,6 +101,7 @@ def search_combination_RF_cls(X,
                               CVS_method='grid',
                               param_grid='basic',
                               param_distributions=None,
+                              drop_estimator=False,
                               CVS_kwargs=None):
     """Search for the best combination of features using RF.
 
@@ -148,14 +149,15 @@ def search_combination_RF_cls(X,
                                                   n_components)
 
     for combination in all_combinations:
-        results[combination] = CVBest(
-            get_RF_CVS(X[:, combination],
-                       y,
-                       'classification',
-                       CVS_method=CVS_method,
-                       param_grid=param_grid,
-                       param_distributions=param_distributions,
-                       CVS_kwargs=CVS_kwargs))
+        results[combination] = CVBest(get_RF_CVS(
+            X[:, combination],
+            y,
+            'classification',
+            CVS_method=CVS_method,
+            param_grid=param_grid,
+            param_distributions=param_distributions,
+            CVS_kwargs=CVS_kwargs),
+                                      drop_estimator=drop_estimator)
 
     res_metric = np.array([
         -rank_scaler * results[combination].best_score_
@@ -181,6 +183,7 @@ def search_combination_RF_reg(X,
                               CVS_method='grid',
                               param_grid='basic',
                               param_distributions=None,
+                              drop_estimator=False,
                               CVS_kwargs=None):
     """Search for the best combination of features using RF.
 
@@ -231,14 +234,15 @@ def search_combination_RF_reg(X,
                                                   n_components)
 
     for combination in all_combinations:
-        results[combination] = CVBest(
-            get_RF_CVS(X[:, combination],
-                       y,
-                       'regression',
-                       CVS_method=CVS_method,
-                       param_grid=param_grid,
-                       param_distributions=param_distributions,
-                       CVS_kwargs=CVS_kwargs))
+        results[combination] = CVBest(get_RF_CVS(
+            X[:, combination],
+            y,
+            'regression',
+            CVS_method=CVS_method,
+            param_grid=param_grid,
+            param_distributions=param_distributions,
+            CVS_kwargs=CVS_kwargs),
+                                      drop_estimator=drop_estimator)
 
     res_metric = np.array([
         -rank_scaler * results[combination].best_score_
@@ -256,9 +260,9 @@ def search_combination_RF_reg(X,
 
 class CVBest:
 
-    def __init__(self, cvs):
+    def __init__(self, cvs, drop_estimator=False):
         self.best_score_ = cvs.best_score_
-        self.best_estimator_ = cvs.best_estimator_
+        self.best_estimator_ = None if drop_estimator else cvs.best_estimator_
 
     def __repr__(self):
         return f'CVBest(\n    best_score={self.best_score_}, \n    best_estimator={self.best_estimator_}\n)'
