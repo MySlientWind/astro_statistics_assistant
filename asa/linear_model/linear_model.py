@@ -195,7 +195,8 @@ def xy2logxy(x, y, x_err, y_err, no_invalid_value_warning=False):
     """
 
     # Save the current error handling settings
-    old_settings = np.seterr(invalid='ignore') if no_invalid_value_warning else None
+    old_settings = np.seterr(
+        invalid='ignore') if no_invalid_value_warning else None
 
     try:
         logx = np.log10(x)
@@ -205,17 +206,49 @@ def xy2logxy(x, y, x_err, y_err, no_invalid_value_warning=False):
     finally:
         # Restore the old error handling settings
         if no_invalid_value_warning:
-            np.seterr(**old_settings) # pylint: disable=not-a-mapping
+            np.seterr(**old_settings)  # pylint: disable=not-a-mapping
 
     return logx, logy, logx_err, logy_err
 
 
-def get_string(k, b, order='xy'):
+def get_string(k,
+               b,
+               order='xy',
+               x_name='x',
+               y_name='y',
+               k_err=None,
+               b_err=None,
+               format='.2f'):
     sign = '-' if np.sign(b) == -1 else '+'
+
     if order == 'xy':
-        return f'y = {k:.2f}x {sign} {np.abs(b):.2f} '
+        return f'{y_name} = {get_with_err_str(k, k_err, format=format)}{x_name} {sign} {get_with_err_str(np.abs(b), b_err, format=format)}'
     elif order == 'yx':
-        return f'x = {k:.2f}y {sign} {np.abs(b):.2f}'
+        return f'{x_name} = {get_with_err_str(k, k_err, format=format)}{y_name} {sign} {get_with_err_str(np.abs(b), b_err, format=format)}'
+
+
+def get_with_err_str(value, err, format='.2f', err_style='pm_latex'):
+    err_str = get_err_str(err, style=err_style, format=format)
+    return f'{value:{format}}{err_str}'
+
+
+def get_err_str(err, style='pm_latex', format='.2f'):
+
+    if style not in ['pm_latex', 'pm_unicode', 'bracket']:
+        raise ValueError(
+            "style must be one of 'pm_latex', 'pm_unicode', 'bracket'")
+
+    err_str = ''
+
+    if err is not None:
+        if style == 'pm_latex':
+            err_str = f'$\pm${err:{format}}'
+        elif style == 'pm_unicode':
+            err_str = f'+/-{err:{format}}'
+        elif style == 'bracket':
+            err_str = f'({err:{format}})'
+
+    return err_str
 
 
 def get_ans_posterior(X, y, y_err=None):

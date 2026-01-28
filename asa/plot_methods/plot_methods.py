@@ -813,6 +813,7 @@ def plot_contour(x,
     if ax is None:
         ax = plt.gca()
 
+    # TODO: label
     hist2d(x,
            y,
            bins=bins,
