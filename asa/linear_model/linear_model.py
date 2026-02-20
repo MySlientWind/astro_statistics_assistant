@@ -122,6 +122,30 @@ def get_WLS(x, y, y_err, return_res=False):
     return {'k': (k, k_err), 'b': (b, b_err), 'std': std, 'func': func}
 
 
+def get_WLS_nd(X, y, y_err, return_res=False):
+    """
+    多元加权最小二乘法 (Multivariate WLS)
+    支持 y_err 作为输入进行加权
+    """
+    # 1. 预处理数据
+    X, y, y_err = preprocess([X, y, y_err])
+
+    # 2. 准备自变量矩阵（添加截距项）
+    # 默认 const 在第一列
+    X_with_const = sm.add_constant(X)
+
+    # 3. 构建并拟合 WLS 模型
+    # 权重通常为方差的倒数 1/sigma^2
+    weights = 1. / np.square(y_err)
+    model = sm.WLS(y, X_with_const, weights=weights)
+    results = model.fit()
+
+    def func(X):
+        return results.predict(sm.add_constant(X))
+
+    return results, func
+
+
 def get_ODR(x, y, x_err=None, y_err=None, return_res=False):
 
     # https://docs.scipy.org/doc/scipy/reference/odr.html
@@ -164,6 +188,171 @@ def get_ODR(x, y, x_err=None, y_err=None, return_res=False):
         'd_std': d_std,
         'func_xy': func_xy,
         'func_yx': func_yx
+    }
+
+
+def get_ODR_nd(
+    X,
+    y,
+    X_err=None,
+    y_err=None,
+    input_mode="samples_features",  # "samples_features" or "features_samples"
+    return_res=False,
+):
+    """
+    Multivariate Orthogonal Distance Regression (ODR)
+
+    Parameters
+    ----------
+    X : array-like
+        默认形状 (n_samples, n_features)
+        若 input_mode="features_samples"，则为 (n_features, n_samples)
+
+    y : array-like
+        形状 (n_samples,)
+
+    X_err : array-like or None
+        与 X 同形状的测量误差
+
+    y_err : array-like or None
+        与 y 同形状的测量误差
+
+    input_mode : str
+        "samples_features" (default)
+        "features_samples"
+
+    return_res : bool
+        若 True，直接返回 scipy.odr 的 results 对象
+    """
+
+    # =========================
+    # 1️⃣ 输入整理
+    # =========================
+
+    X = np.asarray(X)
+    y = np.asarray(y)
+
+    if X.ndim != 2:
+        raise ValueError("X must be a 2D array")
+
+    if input_mode == "samples_features":
+        n_samples, n_features = X.shape
+        X_odr = X.T  # ODR 需要 (p, n)
+    elif input_mode == "features_samples":
+        n_features, n_samples = X.shape
+        X_odr = X
+        X = X.T  # 统一内部逻辑为 (n, p)
+    else:
+        raise ValueError(
+            "input_mode must be 'samples_features' or 'features_samples'")
+
+    if y.shape[0] != n_samples:
+        raise ValueError("y must have same number of samples as X")
+
+    # =========================
+    # 2️⃣ 误差处理（加入数值保护）
+    # =========================
+
+    eps = 1e-12
+
+    if X_err is None:
+        X_err = np.ones_like(X_odr)
+    else:
+        X_err = np.asarray(X_err)
+        if input_mode == "samples_features":
+            X_err = X_err.T
+
+    if y_err is None:
+        y_err = np.ones_like(y)
+
+    wd = 1.0 / (np.square(X_err) + eps)
+    we = 1.0 / (np.square(y_err) + eps)
+
+    # =========================
+    # 3️⃣ 使用 OLS 作为初值（提高收敛稳定性）
+    # =========================
+
+    # OLS: y = X k + b
+    X_aug = np.column_stack([X, np.ones(n_samples)])
+    beta_ols, *_ = np.linalg.lstsq(X_aug, y, rcond=None)
+
+    beta0 = beta_ols.copy()
+
+    # =========================
+    # 4️⃣ 定义 ODR 模型
+    # =========================
+
+    def f(B, x):
+        # x shape: (p, n)
+        return np.dot(B[:-1], x) + B[-1]
+
+    model = Model(f)
+    data = Data(X_odr, y, wd=wd, we=we)
+    odr = ODR(data, model, beta0=beta0)
+
+    results = odr.run()
+
+    if return_res:
+        return results
+
+    # =========================
+    # 5️⃣ 提取结果
+    # =========================
+
+    betas = results.beta
+    betas_err = results.sd_beta
+
+    k_vec = betas[:-1]
+    b = betas[-1]
+
+    # =========================
+    # 6️⃣ 预测函数（根据 input_mode 兼容）
+    # =========================
+
+    def func_xy(x_input):
+        """
+        支持:
+        - (n_samples, n_features)
+        - (n_features, n_samples) 若 input_mode="features_samples"
+        """
+        x_input = np.asarray(x_input)
+
+        if input_mode == "samples_features":
+            return x_input @ k_vec + b
+        else:
+            # 预期行为：保持与 ODR 数据格式一致
+            # 若传入为 (n_features, n_samples)
+            if x_input.shape[0] == n_features:
+                return np.dot(k_vec, x_input) + b
+            else:
+                return x_input @ k_vec + b
+
+    # =========================
+    # 7️⃣ 残差统计
+    # =========================
+
+    y_pred = func_xy(X)
+
+    # ⚠ 保持原行为：使用总体 std
+    # 若需无偏估计，应改为 (n - p - 1) 归一化
+    y_std = np.std(y_pred - y)
+
+    # ⚠ 这是后验计算的几何距离
+    # ODR 内部最小化的正交距离不一定完全等于此表达式
+    denom = np.sqrt(np.sum(k_vec**2) + 1)
+    d_std = np.std((y_pred - y) / denom)
+
+    # =========================
+    # 8️⃣ 返回结果
+    # =========================
+
+    return {
+        "coeffs": list(zip(k_vec, betas_err[:-1])),
+        "intercept": (b, betas_err[-1]),
+        "y_std": y_std,
+        "d_std": d_std,
+        "func_xy": func_xy,
+        "results": results,
     }
 
 

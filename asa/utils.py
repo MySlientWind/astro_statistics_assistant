@@ -19,7 +19,7 @@ def flag_bad(x):
     """
     return np.isnan(x) | np.isinf(x)
 
-
+# TODO: move to sklearn_tools
 def balance_class(x, y, random_state=None):
     """
     Balance the classes in a dataset by randomly removing data points from the majority class(es).
