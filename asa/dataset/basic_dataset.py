@@ -21,6 +21,7 @@ class BasicDataset:
     # TODO: DF to AASTeX tabel. Maybe ref to: https://github.com/liuguanfu1120/Excel-to-AASTeX/blob/main/xlsx-to-AAS-table.ipynb
     # TODO: better OP_MAP_LABEL with format string.
     # TODO: dict as input
+    # TODO: check if - in name, we require the key should be a legal var name
 
     OP_MAP: Dict[str, Callable] = {'log10': np.log10, 'square': np.square}
     OP_MAP_LABEL: Dict[str, str] = OP_MAP_LABEL

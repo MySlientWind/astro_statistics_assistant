@@ -8,7 +8,7 @@ from sklearn.mixture._gaussian_mixture import (
     _estimate_gaussian_covariances_tied)
 
 
-# TODO: fix cov; what does it mean?
+# TODO: fit with fixed covariances
 # TODO: more test to make sure it works as expected
 class GaussianMixture(SK_GaussianMixture):
 
