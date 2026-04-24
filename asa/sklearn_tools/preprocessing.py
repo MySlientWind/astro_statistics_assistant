@@ -8,11 +8,11 @@ class PCA_QT_Layer:
     def __init__(
         self,
         n_quantiles=100,
+        output_distribution='uniform'
     ):
         # subsample shoul be None, or the transformation is not invertible
         self.qt = QuantileTransformer(n_quantiles=n_quantiles,
-                                      output_distribution='uniform',
-                                      subsample=None)
+                                      output_distribution=output_distribution)
         self.pca = PCA()
 
     def fit_transform(self, X):
@@ -37,10 +37,11 @@ class PCA_QT_Transformer:
     def __init__(
         self,
         n_quantiles=100,
+        output_distribution='uniform',
         n_layers=100,
     ):
         self.layers = [
-            PCA_QT_Layer(n_quantiles=n_quantiles) for _ in range(n_layers)
+            PCA_QT_Layer(n_quantiles=n_quantiles, output_distribution=output_distribution) for _ in range(n_layers)
         ]
 
     def fit_transform(self, X, y=None):

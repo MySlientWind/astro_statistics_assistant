@@ -245,8 +245,6 @@ def plot_trend(x,
                                           fbetween_args, statistic)
         _fbt_low, _fbt_up = fbetween
 
-        
-
         if fbetween_bad_policy == 'omit':
             _x_bin = x_bin
         elif fbetween_bad_policy == 'skip':
@@ -512,8 +510,10 @@ def plot_scatter(x,
     if has_z:
         if if_smooth_z:
             _z = loess_2d_map(_x, _y, _z, _x, _y, _weights, n_smooth)
+        _color = None
     else:
         _z = None
+        _color = color
 
     if has_err:
         plot_errorbar(_x,
@@ -522,10 +522,11 @@ def plot_scatter(x,
                       xerr=_xerr,
                       yerr=_yerr,
                       ax=ax,
+                      color=_color,
                       with_colorbar=False,
                       **errorbar_kwargs)
 
-    sc = ax.scatter(_x, _y, c=_z, label=label, **kwargs)
+    sc = ax.scatter(_x, _y, c=_z, label=label, color=_color, **kwargs)
 
     if has_z and with_colorbar:
         plt.colorbar(sc, ax=ax)
@@ -1040,6 +1041,13 @@ def plot_errorbar(x,
         norm = scale_factory(norm, c, vmin=vmin, vmax=vmax)
 
     colors = cmap(norm(c))
+
+    if ('color' in kwargs):
+        if kwargs['color'] is not None:
+            print(
+                "Warning: color is provided in kwargs, but it will be overridden by the color coding based on 'c'."
+            )
+        kwargs.pop('color')
 
     # Plotting with error bars and color coding
     if xerr is None:
